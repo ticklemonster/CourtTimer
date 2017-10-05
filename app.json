@@ -1,5 +1,7 @@
 {
   "expo": {
+    "name": "Court Timer",
+    "slug": "court-timer",
     "sdkVersion": "21.0.0"
   }
 }
