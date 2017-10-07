@@ -4,14 +4,6 @@ import { List, ListItem, Left, Body, Right, Button, Text, Icon } from 'native-ba
 import PlayerListItem from './playerlistitem';
 
 export default class PlayerList extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      history:  []
-    };
-  }
-
   gameTimeAsc(a,b) {
     return a.gameTime - b.gameTime;
   }
@@ -23,7 +15,7 @@ export default class PlayerList extends React.Component {
     if( item.key < 0 ) {
       return (<ListItem itemDivider><Text>{item.name}</Text></ListItem>);
     } else {
-      return (<PlayerListItem player={item} />);
+      return (<PlayerListItem player={item} onPress={ this.props.onPress }/>);
     }
 
   }
