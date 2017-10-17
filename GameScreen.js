@@ -12,11 +12,10 @@ export default class GameScreen extends React.Component {
     super(props);
     this.state = {
       isRunning: false,
-      msecs: DEFAULT_TIME
+      msecs: DEFAULT_TIME,
+      players: [ ...props.team.players ]
     };
-    
-    // keep a local copy of the player list for timing
-    this.state.players = [ ...props.team.players ];
+
   }
 
   updatePlayerTimes( player_array, elapsed )
@@ -25,6 +24,7 @@ export default class GameScreen extends React.Component {
     for( p in player_array ) {
       let player = Object.assign({},player_array[p]); // force object shallow copy
       if( player.onCourt ) {
+        if( !player.gameTime ) player.gameTime = 0;
         player.gameTime += elapsed;
       }
       rval.push( player );
@@ -128,7 +128,7 @@ export default class GameScreen extends React.Component {
         <Header>
           <Left>
             <Button transparent>
-              <Icon name='arrow-back' onPress={ this.props.navHome } />
+              <Icon name='arrow-back' onPress={ this.props.nav.home } />
             </Button>
           </Left>
           <Body>
@@ -168,6 +168,10 @@ export default class GameScreen extends React.Component {
         </Footer>
       </Container>
     );
+  }
+
+  componentWillMount() {
+
   }
 
   componentWillUnmount() {

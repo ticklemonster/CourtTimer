@@ -20,7 +20,7 @@ export default class PlayerListItem extends React.Component {
         </Text>
       </Body>
       <Right style={{flex: 2}}>
-        <TimeText msecs={this.props.player.gameTime}></TimeText>
+        <TimeText msecs={ this.props.player.gameTime || 0}></TimeText>
       </Right>
     </ListItem>);
   }

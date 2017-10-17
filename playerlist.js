@@ -30,7 +30,10 @@ export default class PlayerList extends React.Component {
     onCourt.sort(this.gameTimeDesc);
     onBench.sort(this.gameTimeAsc);
 
-    let renderData = [ onCourtHeader ].concat( onCourt ).concat([onBenchHeader]).concat(onBench);
+    let renderData = [ onCourtHeader ]
+      .concat( onCourt )
+      .concat([onBenchHeader])
+      .concat(onBench);
 
     return (
       <View>

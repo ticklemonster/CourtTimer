@@ -12,43 +12,66 @@ export default class EditTeamScreen extends React.Component {
     this.state = {
       name: props.team.name,
       players: [...props.team.players],
-      newPlayerName: '',
-      newPlayerKey: ''
+      addNewEnabled: false
     };
+
+    this._newPlayerNumber = null;
+    this._newPlayerName = null;
   }
 
-  editNewPlayerName = (e) => {
-    if( !e.nativeEvent.text || e.nativeEvent.text.length < 1 ) return;
-    this.shouldAddNewPlayer({ key: '', name: e.nativeEvent.text });
-    this._newNameText._root.clear();
+  // updateAddNewButtonState
+  // - The add new player button should be enabled when
+  //   both Number and Name have content
+  updateAddNewButtonState() {
+    let enabledState = (
+      this._newPlayerName && this._newPlayerName > '' &&
+      this._newPlayerNumber && this._newPlayerNumber > '' );
+
+    if( enabledState != this.state.addNewEnabled )
+      this.setState({ addNewEnabled: enabledState });
   }
 
-  editNewPlayerNumber = (e) => {
-    if( !e.nativeEvent.text || e.nativeEvent.text.length < 1 ) return;
-    this.shouldAddNewPlayer({ key: e.nativeEvent.text, name: '' });
-    this._newNumberText._root.clear();
+  newNumberChanged = (text) => {
+    this._newPlayerNumber = text;
+    this.updateAddNewButtonState();
   }
 
-  shouldAddNewPlayer = ( player_obj ) => {
-    console.log('ShouldAddNewPlayer: ', player_obj );
-    if( player_obj.key || player_obj.name ) {
-      this.setState({
-        players: [...this.state.players, player_obj ],
-        newPlayerName: '',
-        newPlayerKey: ''
-      });
-    } else {
-      console.log(' - not valid. ignore');
-    }
+  newNameChanged = (text) => {
+    this._newPlayerName = text;
+    this.updateAddNewButtonState();
   }
 
+  // adds a new player to the list (based on this._newPlayerNumber and ...Name)
+  addNewPlayer = () => {
+    if( !this.state.addNewEnabled ) return;
+
+    let newPlayer = {
+      key: this._newPlayerNumber,
+      name: this._newPlayerName
+    };
+    this._newPlayerName = null;
+    this._newPlayerNumber = null;
+
+    this.setState({
+      players: [...this.state.players, newPlayer ],
+      addNewEnabled: false
+    });
+  }
+
+  // Update team name...
+  updateTeamName = (newName) => {
+    this.setState({ name: newName });
+  }
+
+  // Update existing player in list functions...
   updatePlayerKey = (fromKey,e) => {
     console.log('try to update player key for {key:' + fromKey + '} to ' + e.nativeEvent.text );
     let newplayers = [];
+    let newValue = e.nativeEvent.text;
     for( p in this.state.players ) {
-      let player = Object.assign({},this.state.players[p]);
+      let player = Object.assign({},this.state.players[p]); //copy player obj
       if( player.key === fromKey ) {
-        player.key = e.nativeEvent.text;
+        player.key = newValue;
       }
       newplayers.push(player);
     }
@@ -59,10 +82,11 @@ export default class EditTeamScreen extends React.Component {
   updatePlayerName = (fromKey,e) => {
     console.log('try to update player name for {key:', fromKey, '} to ', e.nativeEvent.text );
     let newplayers = [];
+    let newValue = e.nativeEvent.text;
     for( p in this.state.players ) {
       let player = Object.assign({},this.state.players[p]);
       if( player.key === fromKey ) {
-        player.name = e.nativeEvent.text;
+        player.name = newValue;
       }
       newplayers.push(player);
     }
@@ -70,26 +94,62 @@ export default class EditTeamScreen extends React.Component {
     this.setState({ players: newplayers });
   }
 
+  deletePlayer = (key) => {
+    console.log('DeletePlayer: ' + key);
+    let newplayers = [];
+    for( p in this.state.players ) {
+      let player = Object.assign({},this.state.players[p]);
+      if( player.key !== key ) newplayers.push(player);
+    }
+
+    this.setState({ players: newplayers });
+  }
+
+  saveEdits = () => {
+    let team = {
+      key: this.props.team.key,
+      name: this.state.name,
+      players: this.state.players
+    };
+    this.props.nav.save( team );
+    this.props.nav.home();
+  }
+
+  confirmDelete = () => {
+    console.log('TODO: Should delete team with key = ', this.props.team.key );
+    this.props.nav.delete( this.props.team.key );
+    this.props.nav.home();
+  }
+
   render() {
-    console.log('EditTeamScreen with team name: ' + this.state.name + ' players: ', this.state.players );
+    console.log('EditTeamScreen with name: ' + this.state.name + ' players: ' + this.state.players.length );
+
     return (
       <Container>
         <Header>
+          <Left>
+            <Button transparent>
+              <Icon name='arrow-back' onPress={this.props.nav.home} />
+            </Button>
+          </Left>
           <Body>
             <Title>Edit Team Details</Title>
           </Body>
           <Right>
-            <Button transparent>
-              <Icon name='arrow-back' onPress={this.props.navHome} />
+            <Button transparent onPress={ this.saveEdits }>
+              <Text>Save</Text>
             </Button>
           </Right>
         </Header>
         <Content>
           <Form>
-            <Item fixedLabel>
-              <Label>Team Name:</Label>
+            <Separator style={{marginTop: 20}}><Label>Team Name</Label></Separator>
+            <Item>
               <Input underline style={{fontWeight: 'bold'}}
-                placeholder="Enter team name">{this.state.name}</Input>
+                onEndEditing={(e) => this.updateTeamName(e.nativeEvent.text)}
+                placeholder="Enter team name">
+                {this.state.name}
+              </Input>
             </Item>
 
             <Separator style={{marginTop: 20}}><Label>Team Roster</Label></Separator>
@@ -99,28 +159,43 @@ export default class EditTeamScreen extends React.Component {
                   onEndEditing={ (e) => this.updatePlayerKey(player.key,e) }>
                   {player.key}
                 </Input>
-                <Input style={{flex: 4}} onEndEditing={ (e) => this.updatePlayerName(player.key,e)}>{player.name}</Input>
-                <Icon name='close-circle' style={{color: 'red'}} />
+                <Input style={{flex: 4}}
+                  onEndEditing={ (e) => this.updatePlayerName(player.key,e)} >
+                  {player.name}
+                </Input>
+                <Icon name='close-circle' style={{color: 'red'}}
+                  onPress={ () => this.deletePlayer(player.key) }
+                />
               </Item>);
             }) }
+          </Form>
 
+          <Form style={{marginTop: 60, backgroundColor: '#ccf'}}>
             <Item>
               <Input placeholder='#' keyboardType='numeric' style={{flex: 1}}
-                onEndEditing={ this.editNewPlayerNumber } ref={ (c) => this._newNumberText = c }>
-                {this.state.newPlayerKey}
+                onChangeText={ this.newNumberChanged } >
+                { this._newPlayerNumber }
               </Input>
-              <Input placeholder='New player name' autoCapitalize='words' style={{flex: 4}}
-                onEndEditing={ this.editNewPlayerName } ref={ (c) => this._newNameText = c }>
-                {this.state.newPlayerName}
+              <Input placeholder='New player name' autoCapitalize='words'
+                style={{flex: 4}} onChangeText={ this.newNameChanged }
+                onEndEditing={ this.addNewPlayer }>
+                { this._newPlayerName }
               </Input>
+              <Button primary disabled={ !this.state.addNewEnabled }
+                onPress={ this.addNewPlayer } >
+                <Icon name='add' />
+              </Button>
             </Item>
           </Form>
 
-          <View style={{marginTop: 20, padding: 20, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Button primary><Icon name='checkmark' /><Text>Save</Text></Button>
-            <Button light onPress={ this.props.navHome }><Icon name='close' /><Text>Cancel</Text></Button>
-          </View>
         </Content>
+        <Footer>
+          <FooterTab>
+            <Left><Button onPress={this.props.nav.home}><Icon name='close'/><Text>Cancel</Text></Button></Left>
+            <Body><Button full critical onPress={this.confirmDelete}><Icon name='trash'/><Text>Delete</Text></Button></Body>
+            <Right><Button primary onPress={this.saveEdits}><Icon name='checkmark'/><Text>Save</Text></Button></Right>
+          </FooterTab>
+        </Footer>
       </Container>
     );
   }
