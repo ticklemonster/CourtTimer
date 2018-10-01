@@ -1,13 +1,7 @@
 import React from 'react';
-import { Text } from 'native-base';
+import { Text } from 'react-native';
 
-export default class TimeText extends React.Component {
-  constructor() {
-    super();
-
-    this.lastDate = new Date();
-    this.isRunning = false;
-  }
+export default class TimeText extends React.PureComponent {
   render() {
     let timestr = new Date(this.props.msecs).toISOString().substr(14,5);
 
@@ -15,5 +9,4 @@ export default class TimeText extends React.Component {
       <Text>{ timestr }</Text>
     );
   }
-
 }
