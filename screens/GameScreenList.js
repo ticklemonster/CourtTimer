@@ -8,8 +8,8 @@ import TeamStore from '../TeamStore';
 
 const DEFAULT_TIME = 1200000;
 
-const playerListStyle = { flex: 1, margin: 5 }; //backgroundColor: '#cfd8dc', borderWidth: 5, borderColor: '#0069c0' };
-const titleViewStyle = { flex: 0, backgroundColor: '#0069c0', paddingHorizontal: 5 };
+const playerListStyle = { margin: 5 }; //backgroundColor: '#cfd8dc', borderWidth: 5, borderColor: '#0069c0' };
+const titleViewStyle = { backgroundColor: '#0069c0', paddingHorizontal: 5 };
 const titleTextStyle = { fontSize: 18, fontWeight: 'bold', alignSelf: 'center', color: 'white' };
 
 export default class GameScreen extends React.Component {
@@ -65,6 +65,7 @@ export default class GameScreen extends React.Component {
   }
 
   handleBackPress () {
+    
     if (this.state.isRunning && !this.backPressed) {
       this.backPressed = true;
       this.backpressTimer = setTimeout( () => {this.backPressed = false}, 3000 );
@@ -220,12 +221,6 @@ export default class GameScreen extends React.Component {
     // const selectedActiveCount = this.state.playing.reduce((count,item) => (item.selected ? count+1 : count));
     const selectedActiveCount  = this.state.playing.filter(item => item.selected).length;
     const selectedBenchCount  = this.state.bench.filter(item => item.selected).length;
-    
-    const defaultPlayerBtnStyle = { flex: 1, elevation: 4, backgroundColor: '#ffffff', borderRadius: 2, marginHorizontal: 0, marginBottom: 2, flexDirection: 'column', alignItems: 'center' };
-    const selctedPlayerBtnStyle = { flex: 1, elevation: 1, backgroundColor: '#6ec6ff', borderRadius: 2, marginHorizontal: 0, marginBottom: 2, flexDirection: 'column', alignItems: 'center' };
-    const playerNumberStyle = { flex: 1, color: 'black', fontSize: 18, fontWeight: 'bold' };
-    const playerNameStyle = { flex: 2, color: 'black', fontSize: 24, fontWeight: 'bold' };
-    const playerTimeStyle = { flex: 1, color: 'black', fontSize: 18 };
 
     const buttons = [        
       <IconButton key='PLAY-PAUSE' onPress={this.toggleTimer}
@@ -239,53 +234,35 @@ export default class GameScreen extends React.Component {
     if (this.state.orientation == 'landscape') {
       // Landscape mode
       return (
-        <SafeAreaView style={{ flex: 1, alignContent: 'center', backgroundColor: '#cfd8dc', flexDirection: 'column' }}>
-          <View style={{ flex: 0, alignSelf: 'center', alignContent: 'center' }}>
+        <SafeAreaView style={{ flex: 1, alignContent: 'center', backgroundColor: '#cfd8dc' }}>
+          <View style={{ flex: 1, alignSelf: 'center', alignContent: 'center', flexDirection: 'row' }}>
             <Text style={{ fontSize: 24, color: 'blue' }}>{timestr}</Text>
-          </View>
-          <View style={{ flex: 3, flexDirection: 'column'  }}>
-            <View style={titleViewStyle}>
-              <Text style={titleTextStyle}>ON COURT</Text>
+          </View>       
+          <View style={{ flex: 6, flexDirection: 'row' }}>
+            <View style={{ flex: 1, ...playerListStyle }}>
+              <View style={titleViewStyle}><Text style={titleTextStyle}>ON COURT</Text></View>
+              <FlatList data={this.state.playing}
+                keyExtractor={ (item) => item.number.toString() }
+                renderItem={({item}) => 
+                  <PlayerTimerSelectable player={item}
+                    onPress={() => this.selectPlayer(item.number, true)} 
+                  />
+                }>
+              </FlatList>
             </View>
-            <View style={{ ...playerListStyle, flexDirection: 'row', margin: 2 }}>
-              {this.state.playing.map( item => (
-                <TouchableNativeFeedback key={item.number} onPress={() => this.selectPlayer(item.number, true)}>
-                  <View style={{ 
-                    flex: 0, borderRadius: 2, flexDirection: 'column', alignItems: 'center',
-                    width: '20%', margin: 1, 
-                    elevation: item.selected ? 1 : 4,
-                    backgroundColor: item.selected ? '#6ec6ff' : '#ffffff'
-                  }}>
-                    <Text style={ playerNumberStyle }>{item.number}</Text>
-                    <Text style={ playerNameStyle }>{item.name}</Text>
-                    <Text style={ playerTimeStyle }>{new Date(item.gameTime).toISOString().substr(14,5)}</Text>
-                  </View>
-                </TouchableNativeFeedback>
-              ))}
-            </View>
-          </View>
-          <View style={{ flex: 3, flexDirection: 'column' }}> 
-            <View style={titleViewStyle}>
-              <Text style={titleTextStyle}>ON BENCH</Text>
-            </View>
-            <View style={{ ...playerListStyle, flexDirection: 'row', justifyContent: 'center' }}>
-              {this.state.bench.map( item => (
-                <TouchableNativeFeedback key={item.number} onPress={() => this.selectPlayer(item.number, false)}>
-                  <View  style={{ 
-                    flex: 0, borderRadius: 2, margin: 1, flexDirection: 'column', alignItems: 'center', 
-                    width: '20%',
-                    elevation: item.selected ? 1 : 4,
-                    backgroundColor: item.selected ? '#6ec6ff' : '#ffffff'
-                  }}>
-                    <Text style={ playerNumberStyle }>{item.number}</Text>
-                    <Text style={ playerNameStyle }>{item.name}</Text>
-                    <Text style={ playerTimeStyle }>{new Date(item.gameTime).toISOString().substr(14,5)}</Text>
-                  </View>
-                </TouchableNativeFeedback>
-              ))}
+            <View style={{ flex: 1, ...playerListStyle }}>
+              <View style={titleViewStyle}><Text style={titleTextStyle}>ON BENCH</Text></View>
+              <FlatList data={this.state.bench}
+                keyExtractor={ (item) => item.number.toString() }
+                renderItem={({item}) =>
+                  <PlayerTimerSelectable player={item}
+                    onPress={() => this.selectPlayer(item.number, false)} 
+                  />
+                }>              
+              </FlatList>
             </View>
           </View>
-          <View style={{ flex: 0, flexDirection: 'row' }}>
+          <View style={{ flex: 1, flexDirection: 'row' }}>
             { buttons }
           </View>
         </SafeAreaView>
@@ -293,55 +270,35 @@ export default class GameScreen extends React.Component {
     } else {
       // Portrait mode
       return (
-        <SafeAreaView style={{ flex: 1, alignItems: 'stretch', flexDirection: 'column' }}>
-          <View style={{ flex: 0, alignSelf: 'center', alignContent: 'center' }}>
+        <SafeAreaView style={{ flex: 1, alignItems: 'stretch' }}>
+          <View style={{ flex: 1, alignSelf: 'center', alignContent: 'center', flexDirection: 'row' }}>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'blue' }}>{timestr}</Text>
           </View> 
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'stretch', margin: 5, justifyContent: 'space-around' }}>
-            <View style={ playerListStyle }>
-              <View style={titleViewStyle}>
-                <Text style={titleTextStyle}>BENCH</Text>
-              </View>
-              <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'flex-start'}}>
-                {this.state.bench.map( item => (
-                  <TouchableNativeFeedback key={item.number} onPress={() => this.selectPlayer(item.number, false)}>
-                    <View style={{ 
-                      flex: 0, borderRadius: 2, margin: 1, flexDirection: 'column', alignItems: 'center', 
-                      height: '20%',
-                      elevation: item.selected ? 1 : 4,
-                      backgroundColor: item.selected ? '#6ec6ff' : '#ffffff'
-                    }}>
-                      <Text style={ playerNumberStyle }>{item.number}</Text>
-                      <Text style={ playerNameStyle }>{item.name}</Text>
-                      <Text style={ playerTimeStyle }>{new Date(item.gameTime).toISOString().substr(14,5)}</Text>
-                    </View>
-                  </TouchableNativeFeedback>
-                ))}
-              </View>
-            </View>
-            <View style={ playerListStyle }>
-              <View style={titleViewStyle}>
-                <Text style={titleTextStyle}>COURT</Text>
-              </View>
-              <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'flex-start'}}>
-                {this.state.playing.map( item => (
-                <TouchableNativeFeedback key={item.number} onPress={() => this.selectPlayer(item.number, true)}>
-                  <View style={{ 
-                      flex: 0, borderRadius: 2, margin: 1, flexDirection: 'column', alignItems: 'center', 
-                      height: '20%',
-                      elevation: item.selected ? 1 : 4,
-                      backgroundColor: item.selected ? '#6ec6ff' : '#ffffff'
-                    }}>
-                    <Text style={ playerNumberStyle }>{item.number}</Text>
-                    <Text style={ playerNameStyle }>{item.name}</Text>
-                    <Text style={ playerTimeStyle }>{new Date(item.gameTime).toISOString().substr(14,5)}</Text>
-                  </View>
-                </TouchableNativeFeedback>
-                ))}
-              </View>
-            </View>
+          <View style={{ flex: 6, ...playerListStyle }}>
+            <View style={titleViewStyle}><Text style={titleTextStyle}>COURT</Text></View>
+            <FlatList data={this.state.playing}
+              keyExtractor={ (item) => item.number.toString() }
+              renderItem={({item}) => 
+                <PlayerTimerSelectable player={item}
+                  onPress={() => this.selectPlayer(item.number, true)} 
+                />
+              } 
+            >
+            </FlatList>
           </View>
-          <View style={{ flex: 0, flexDirection: 'row' }}>
+          <View style={{ flex: 6, ...playerListStyle }}>
+          <View style={titleViewStyle}><Text style={titleTextStyle}>BENCH</Text></View>
+            <FlatList data={this.state.bench}
+              keyExtractor={ (item) => item.number.toString() }
+              renderItem={({item}) => 
+                <PlayerTimerSelectable player={item}
+                  onPress={() => this.selectPlayer(item.number, false)} 
+                />
+              } 
+            >
+            </FlatList>
+          </View>
+          <View style={{ flex: 1, flexDirection: 'row' }}>
             { buttons }
           </View>
         </SafeAreaView>

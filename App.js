@@ -29,7 +29,7 @@ export default class App extends React.Component {
       return (<View style={{flex:1}}><ActivityIndicator size='large'/></View>);
     }
 
-    return (<StackNavigator screenProps={{balance: true}}/>);
+    return (<StackNavigator screenProps={{balance: false}}/>);
   }
 
   async componentWillMount() {
