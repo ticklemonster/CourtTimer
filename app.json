@@ -1,14 +1,15 @@
 {
-  "expo": {
-    "name": "Court Timer",
+	"expo": {
+		"name": "Court Timer",
 		"description": "A utility for measing the playing time for a backetball team, as an aid to keep all players with a fair amount of court time.",
-		"icon": "bballtimer.png",
+		"slug": "court-timer",
 		"privacy": "unlisted",
-		"version": "0.1.0",
-    "slug": "court-timer",
-    "sdkVersion": "27.0.0",
-		"android": {
-			"package": "io.github.tickelmonster.CourtTimer"
-		}
-  }
+		"sdkVersion": "31.0.0",
+		"version": "0.2.0",
+		"icon": "./assets/bballtimer.png",
+		"platforms": [
+			"android"
+		],
+		"orientation": "default"
+	}
 }

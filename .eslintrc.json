@@ -4,5 +4,13 @@
         "react",
         "jsx-a11y",
         "import"
-    ]
+    ],
+    "rules": {
+        "linebreak-style": "off",
+        "react/jsx-filename-extension": "off",
+        "no-plusplus": "off",
+        "object-curly-newline": ["error", {
+            "ObjectExpression": { "consistent": true }
+        }]
+    }
 }

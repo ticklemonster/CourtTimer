@@ -1,127 +1,139 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, Alert, TouchableNativeFeedback } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import TeamStore from '../TeamStore';
+import PropTypes from 'prop-types';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { Ionicons } from '@expo/vector-icons';
 import TeamItem from '../components/TeamItem';
+import TeamStore from '../TeamStore';
 
-class SettingsMenuItem extends React.PureComponent {
-  render () {
-    return (
-      <TouchableNativeFeedback onPress={() => console.log('TODO: Implement settings screen')}>
-        <Icon name='md-settings' size={24} style={{ marginHorizontal: 8 }}/>
-      </TouchableNativeFeedback>
-    )
-  }
-}
+const SettingsMenuItem = () => (
+  <TouchableNativeFeedback onPress={() => console.log('TODO: Implement settings screen')}>
+    <Ionicons name="md-settings" size={24} style={{ marginHorizontal: 8 }} />
+  </TouchableNativeFeedback>
+);
 
-export default class HomeScreen extends React.Component {
-  static navigationOptions = {
-    title: 'Court Timer',
-    headerRight: <SettingsMenuItem />
-  };
+const ConfirmDeleteTeam = (team) => {
+  Alert.alert(
+    'Delete team',
+    `Are you sure you want to delete "${team.name}"?`,
+    [
+      { text: 'Cancel', /* onPress: () => console.log('Delete cancelled'), */ style: 'cancel' },
+      { text: 'Delete', onPress: () => TeamStore.deleteTeam(team.key) },
+    ],
+  );
+};
 
-  constructor() {
-    super();
+class HomeScreen extends React.Component {
+  constructor(props) {
+    super(props);
+
     this.state = {
-      teams: undefined
+      selected: null,
     };
 
-    this.onUpdateTeams = this.onUpdateTeams.bind(this);
+    this.updateTeams = this.updateTeams.bind(this);
   }
 
-  componentWillMount () {
-    TeamStore.addEventListener('update', this.onUpdateTeams);
-    this.onUpdateTeams();
+  componentDidMount() {
+    TeamStore.addEventListener('update', this.updateTeams);
+    this.updateTeams();
   }
 
-  componentWillUnmount () {
-    TeamStore.removeEventListener('update', this.onUpdateTeams)
+  componentWillUnmount() {
+    TeamStore.removeEventListener('update', this.updateTeams);
   }
 
-  onDeleteTeam(team) {
-    Alert.alert(
-      'Delete team',
-      'Are you sure you want to delete "' + team.name + '"?',
-      [
-        {text: 'Cancel', onPress: () => console.log('Delete cancelled'), style: 'cancel'},
-        {text: 'Delete', onPress: () => TeamStore.deleteTeam(team.key)},
-      ],
-    );
-  }
+  async updateTeams() {
+    const { navigation } = this.props;
 
-  toggleTeamRow (key) {
-    const _teams = this.state.teams.slice(0);
-    const _item = _teams.find(item => item.key === key);
-
-    if (_item !== undefined) {
-      const _willSelect = (_item.isSelected)?false:true;
-      _teams.forEach(team => team.isSelected = false);
-      _item.isSelected = _willSelect;
-      
-      this.setState({ teams: _teams });
+    const newteams = await TeamStore.getTeams();
+    if (newteams.length === 0) {
+      newteams.push(TeamStore.getSampleTeam());
     }
-  }
-  clearSelection () {
-    this.setState( oldstate => ({ 
-      teams: oldstate.teams.map(item => { item.isSelected = false; return item })
-    }) );
+
+    // push the team list back into the navigation state
+    navigation.setParams({ teams: newteams });
   }
 
-  navigateTo (screen, key) {
-    // check if there is a highlighted row
-    const _item = this.state.teams.find(item => item.isSelected);
+  toggleTeamRow(key) {
+    const { selected } = this.state;
 
-    // cancel navigation if a different key is highlighted
-    if (_item !== undefined && _item.key !== key) {
-      console.debug('prevent navigation while highlighted');
+    this.setState({ selected: (key !== selected) ? key : null });
+  }
+
+  clearSelection() {
+    this.setState({ selected: null });
+  }
+
+  navigateTo(screen, key) {
+    const { selected } = this.state;
+    const { navigation } = this.props;
+
+    // cancel navigation if a different row was highlighted
+    if (selected !== null && selected !== key) {
       this.clearSelection();
       return;
     }
 
-    // navigate and clear selection 
+    // navigtion to  the selected item
     this.clearSelection();
-    this.props.navigation.navigate(screen, {teamkey: key});
+    navigation.navigate(screen, { key });
   }
-
-  async onUpdateTeams() {
-    const _teams = await TeamStore.getTeams();
-    if (_teams.length == 0) 
-      _teams.push (TeamStore.getSampleTeam());
-
-    this.setState({ teams: _teams });
-  }
-
 
   render() {
+    const { navigation } = this.props;
+    const { selected } = this.state;
+
+    const teams = navigation.getParam('teams');
+    const addNewTeamItem = { key: undefined, name: 'Add New Team', iconName: 'md-add' };
+
     // Show an activity indicator if teams aren't loaded...
-    if (this.state.teams === undefined) {
+    if (teams === undefined) {
       return (
-        <View style={{flex: 1, justifyContent: 'center'}}>
-          <ActivityIndicator size='large'/>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ActivityIndicator size="large" />
         </View>
       );
     }
-   
-    // Show the team list...
-    const addNewTeam = { key: undefined, name: 'Add New Team', iconName: 'md-add' }
 
+    // Show the team list...
     return (
-    <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#cfd8dc' }}>
-      <View style={{ flex: 1, alignItems: 'flex-start' }}>
-      { this.state.teams.map( item => 
-        <TeamItem key={item.key} team={item} highlighed={item.isSelected}
-        onSelected={() => this.toggleTeamRow(item.key)}
-        onPress={() => this.navigateTo('GameScreen', item.key)} 
-        onEdit={() => this.navigateTo('EditScreen', item.key)} 
-        onDelete={TeamStore.isSampleTeam(item) ? undefined : () => this.onDeleteTeam(item)} />
-      )}
-      <TeamItem team={addNewTeam} 
-        onSelected={() => this.clearSelection()}
-        onPress={() => this.navigateTo('EditScreen', addNewTeam.key)} /> 
+      <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#cfd8dc' }}>
+        <View style={{ flex: 1, alignItems: 'flex-start' }}>
+          { teams.map(item => (
+            <TeamItem
+              key={item.key}
+              team={item}
+              highlighted={item.key === selected}
+              onSelect={() => this.toggleTeamRow(item.key)}
+              onPress={() => this.navigateTo('GameScreen', item.key)}
+              onEdit={() => this.navigateTo('EditScreen', item.key)}
+              onDelete={() => ConfirmDeleteTeam(item)}
+            />
+          )) }
+          <TeamItem
+            team={addNewTeamItem}
+            onSelect={() => this.clearSelection()}
+            onPress={() => this.navigateTo('EditScreen', undefined)}
+          />
+        </View>
+        <Text>Tip: press and hold on a team to edit the roster</Text>
       </View>
-      <Text>Tip: press and hold on a team to edit the roster</Text>
-    </View>
     );
   }
-
 }
+
+HomeScreen.navigationOptions = {
+  title: 'Court Timer',
+  headerRight: <SettingsMenuItem />,
+};
+
+HomeScreen.propTypes = {
+  navigation: PropTypes.instanceOf(Object).isRequired, // a dumb workaround!
+};
+
+HomeScreen.defaultProps = {
+
+};
+
+export default HomeScreen;

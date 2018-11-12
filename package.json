@@ -1,34 +1,28 @@
 {
-  "name": "CourtTimer",
+  "name": "court-timer",
   "version": "0.1.0",
   "private": true,
+  "main": "./node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "npx expo start",
+    "eject": "npx expo eject",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios"
+  },
+  "dependencies": {
+    "expo": "^31.0.2",
+    "prop-types": "^15.6.2",
+    "react": "16.5.0",
+    "react-native": "https://github.com/expo/react-native/archive/sdk-31.0.0.tar.gz",
+    "react-navigation": "^2.0.0"
+  },
   "devDependencies": {
+    "babel-preset-expo": "^5.0.0",
     "eslint": "^4.0.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-jsx-a11y": "^6.1.1",
     "eslint-plugin-react": "^7.11.1",
-    "exp": "^57.0.1",
-    "jest-expo": "~27.0.0",
-    "react-native-scripts": "1.14.0",
-    "react-test-renderer": "16.3.1"
-  },
-  "main": "./node_modules/react-native-scripts/build/bin/crna-entry.js",
-  "scripts": {
-    "start": "react-native-scripts start",
-    "eject": "react-native-scripts eject",
-    "android": "react-native-scripts android",
-    "ios": "react-native-scripts ios",
-    "test": "jest"
-  },
-  "jest": {
-    "preset": "jest-expo"
-  },
-  "dependencies": {
-    "expo": "^27.0.0",
-    "react": "16.3.1",
-    "react-native": "^0.55.4",
-    "react-native-vector-icons": "^5.0.0",
-    "react-navigation": "^2.12.1"
+    "expo-cli": "^2.2.5"
   }
 }
