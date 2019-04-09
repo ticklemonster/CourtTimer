@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { PixelRatio, View, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { PixelRatio, View, Text } from 'react-native';
+
+import { TextInput, Button, IconButton, Colors } from 'react-native-paper';
 
 class PlayerRow extends React.PureComponent {
   constructor(props) {
@@ -102,47 +103,45 @@ class PlayerRow extends React.PureComponent {
   }
 
   render() {
-    const { fontSize, buttonSize, onAdd, onDelete } = this.props;
+    const { theme, onAdd, onDelete } = this.props;
     const { currentName, currentNumber, validName, validNumber } = this.state;
-
-    const scaledFontSize = fontSize * PixelRatio.get();
-    const scaledButtonSize = buttonSize * PixelRatio.get();
 
     // EDITABLE VIEW
     return (
       <View style={{ flex: 0, flexDirection: 'row', marginVertical: 5 }}>
-        <TextInput
-          style={{ flex: 1, fontSize: scaledFontSize }}
+        <Text
+          style={{ flex: 1 }}
           keyboardType="numeric"
           maxLength={3}
           ref={(ref) => { this.numberInput = ref; }}
           onChangeText={(text) => { this.onUpdateNumber(text); }}
           onSubmitEditing={() => { this.onSubmitNumber(); }}
           blurOnSubmit={false}
-          value={currentNumber}
-        />
-        <TextInput
-          style={{ flex: 4, fontSize: scaledFontSize }}
+        >
+          {currentNumber}
+        </Text>
+        <Text
+          style={{ flex: 4 }}
           ref={(ref) => { this.nameInput = ref; }}
           onChangeText={(text) => { this.onUpdateName(text); }}
           onSubmitEditing={() => { this.onSubmitName(); }}
           blurOnSubmit={false}
-          value={currentName}
-        />
+        >
+          {currentName}
+        </Text>
         { onAdd && (
-          <Ionicons
-            name="md-add"
-            style={{ color: (validName && validNumber) ? '#48c' : '#777', marginLeft: 10 }}
-            size={scaledButtonSize}
+          <Button
+            icon="add"
+            style={{ marginLeft: 10 }}
             disabled={!(validName && validNumber)}
             onPress={() => { this.onAddPressed(); }}
           />
         ) }
         { onDelete && (
-          <Ionicons
-            name="md-trash"
-            style={{ color: 'red', marginLeft: 10 }}
-            size={scaledButtonSize}
+          <IconButton
+            icon="delete"
+            color={theme.colors.error}
+            style={{ margin: 0, marginLeft: 10 }}
             onPress={() => { this.onDeletePressed(); }}
           />
         ) }

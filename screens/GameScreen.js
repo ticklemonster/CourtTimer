@@ -1,42 +1,66 @@
-/* eslint-disable linebreak-style */
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
   Dimensions, BackHandler, ToastAndroid, StyleSheet,
-  SafeAreaView, View, Text, TouchableNativeFeedback,
+  View, ScrollView, Text, TouchableNativeFeedback, ActivityIndicator,
 } from 'react-native';
+import { Appbar, IconButton, Card, Headline, Subheading, Title, Avatar, Checkbox } from 'react-native-paper';
 
-import IconButton from '../components/IconButton';
+
 import TeamStore from '../TeamStore';
+import { INSPECT_MAX_BYTES } from 'buffer';
 
 const DEFAULT_TIME = 1200000;
 
 const styles = StyleSheet.create({
+  pageView: {
+    // ...colourStyles.primary,
+    flex: 1,
+    alignContent: 'center',
+    flexDirection: 'column',
+  },
   playerListStyle: {
     flex: 1, margin: 5,
   },
   titleViewStyle: {
-    flex: 0, backgroundColor: '#0069c0', paddingHorizontal: 5,
+    // ...colourStyles.secondaryDark, 
+    flex: 0, paddingHorizontal: 5, borderRadius: 8,
   },
   titleTextStyle: {
-    fontSize: 18, fontWeight: 'bold', alignSelf: 'center', color: 'white',
+    // ...colourStyles.secondaryDark, 
+    fontSize: 18, fontWeight: 'bold', alignSelf: 'center',
   },
-  defaultPlayerBtnStyle: {
-    flex: 1, elevation: 4, backgroundColor: '#ffffff', borderRadius: 2, marginHorizontal: 0, marginBottom: 2, flexDirection: 'column', alignItems: 'center',
+  playerCardStyle: {
+    // ...colourStyles.primaryLight,
+    flex: 0,
+    borderRadius: 8,
+    margin: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    height: '20%',
+    elevation: 4,
   },
-  selctedPlayerBtnStyle: {
-    flex: 1, elevation: 1, backgroundColor: '#6ec6ff', borderRadius: 2, marginHorizontal: 0, marginBottom: 2, flexDirection: 'column', alignItems: 'center',
+  playerCardSelectedStyle: {
+    // ...colourStyles.secondaryLight,
+    elevation: 1,
   },
   playerNumberStyle: {
-    flex: 1, color: 'black', fontSize: 18, fontWeight: 'bold',
+    flex: 1, fontSize: 18, fontWeight: 'bold',
   },
   playerNameStyle: {
-    flex: 2, color: 'black', fontSize: 24, fontWeight: 'bold',
+    flex: 2, fontSize: 24, fontWeight: 'bold', textAlignVertical: 'center',
   },
   playerTimeStyle: {
-    flex: 1, color: 'black', fontSize: 18,
+    flex: 1, fontSize: 18, textAlignVertical: 'top', paddingTop: 0,
   },
-
+  footerBar: {
+    // borderTopWidth: 1,
+    // borderTopColor: 'red',
+    justifyContent: 'center',
+  },
+  footerAction: {
+    marginHorizontal: 20,
+  },
 });
 
 // helpful player sorting functions
@@ -49,10 +73,11 @@ class GameScreen extends React.Component {
     super(props);
 
     this.state = {
+      name: '',
+      ready: false,
       isRunning: false,
       msecs: DEFAULT_TIME,
-      playing: [],
-      bench: [],
+      players: [],
     };
 
     // non-display stuff
@@ -64,12 +89,13 @@ class GameScreen extends React.Component {
     this.onTeamDataLoaded = this.onTeamDataLoaded.bind(this);
 
     // Load the data from storage...
-    TeamStore.getTeam(props.navigation.getParam('key')).then(this.onTeamDataLoaded);
+    TeamStore.getTeam(props.id).then(this.onTeamDataLoaded);
   }
 
   componentDidMount() {
     BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
     Dimensions.addEventListener('change', this.handleDimensionChange);
+
     // work out the initial dimensions...
     this.handleDimensionChange();
   }
@@ -83,36 +109,44 @@ class GameScreen extends React.Component {
   }
 
   onTeamDataLoaded(team) {
-    const { navigation } = this.props;
-
+    const { prefs } = this.props;
+    const { balancePlayers } = prefs;
+    
     console.debug(`GameScreen.onTeamDataLoaded() - fetched team key=${team.key} name=${team.name}`);
-    this.setState({ playing: team.players.slice(0, 5), bench: team.players.slice(5) });
-    navigation.setParams({ title: `Playing - ${team.name}` });
+    const players = team.players.map(item => ({ ...item, gameTime: 0, selected: false, playing: false }));
+    if (balancePlayers && players.length >= 5) {
+      // automatically select a starting five...
+      for (let i = 0; i < 5; i++) players[i].playing = true;
+    }
+
+    this.setState({
+      name: team.name,
+      players,
+      ready: true,
+    });
   }
 
-
   handleBackPress() {
+    const { onBack } = this.props;
     const { isRunning } = this.state;
 
-    if (isRunning && !this.backPressed) {
-      this.backPressed = true;
-      this.backpressTimer = setTimeout(() => { this.backPressed = false; }, 3000);
-      ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+    if (isRunning) {
+      ToastAndroid.show('Stop the timer to go back', ToastAndroid.SHORT);
       return true;
     }
 
-    return false;
+    onBack(); // commenting this line out disabled back-press
+    return true;
   }
 
   handleDimensionChange() {
     const { width, height } = Dimensions.get('screen');
 
-    console.log('dimension change: ', width, height);
     this.setState({ orientation: (height >= width) ? 'portrait' : 'landscape' });
   }
 
   tick() {
-    const { isRunning, msecs, playing } = this.state;
+    const { isRunning, msecs, players } = this.state;
 
     if (!isRunning) {
       this.stopTimer();
@@ -129,13 +163,9 @@ class GameScreen extends React.Component {
     }
 
     // update the active players
-    const newPlayers = playing.map((item) => {
-      const rval = Object.assign({}, item);
-      rval.gameTime = item.gameTime ? item.gameTime + elapsed : elapsed;
-      return rval;
-    });
+    const newPlayers = players.map(item => ({ ...item, gameTime: item.playing ? item.gameTime + elapsed : item.gameTime }) );
 
-    this.setState({ msecs: newtime, playing: newPlayers });
+    this.setState({ msecs: newtime, players: newPlayers });
   }
 
   startTimer() {
@@ -149,305 +179,264 @@ class GameScreen extends React.Component {
     this.setState({ isRunning: false });
   }
 
-  toggleTimer() {
-    const { isRunning } = this.state;
-
-    if (isRunning) {
-      this.stopTimer();
-    } else {
-      this.startTimer();
-    }
-  }
-
   resetTimer() {
-    const { isRunning, msecs, playing, bench } = this.state;
+    const { isRunning, msecs, players } = this.state;
 
     // if the timer running, then stop it and reset to the default time
     // then stop the timer and reset to the default time
     if (isRunning || msecs !== DEFAULT_TIME) {
-      this.stopTimer();
       this.setState({ isRunning: false, msecs: DEFAULT_TIME });
+      this.stopTimer();
     } else {
       // reest the court time for all players
-      const newPlaying = playing
+      const newplayers = players
         .map(item => ({ ...item, gameTime: 0 }))
-        .sort(this.sortPlayersByNumberAsc);
-      const newBench = bench
-        .map(item => ({ ...item, gameTime: 0 }))
-        .sort(this.sortPlayersByNumberAsc);
-      this.setState({ playing: newPlaying, bench: newBench });
+        .sort(sortPlayersByNumberAsc);
+      this.setState({ players: newplayers });
     }
   }
 
-  selectPlayer(number, isActive) {
-    const { playing, bench } = this.state;
-    const { balance, screenProps } = this.props;
+  selectPlayer(number) {
+    const { players } = this.state;
+    const { prefs } = this.props;
+    const { balancePlayers } = prefs;
 
-    const newPlaying = playing.slice(0);
-    const newBench = bench.slice(0);
-    const selPlayer = isActive ? newPlaying.find(item => item.number === number)
-      : newBench.find(item => item.number === number);
+    const p = players.find(item => item.number === number);
+    p.selected = !p.selected;
 
-    if (selPlayer === undefined) return;
+    const selectedPlayingCount = players.filter(item => item.selected && item.playing).length;
+    const selectedBenchCount = players.filter(item => item.selected && !item.playing).length;
 
-    // update the player selection toggle
-    const wasSelected = (selPlayer === undefined ? undefined : selPlayer.selected || false);
-    selPlayer.selected = !wasSelected;
-
-    // auto-balance player selection only when selecting a new player
-    const shouldBalance = balance || screenProps.balance;
-    const playingSelectCount = newPlaying.reduce((count, i) => count + (i.selected ? 1 : 0), 0);
-    const benchSelectCount = newBench.reduce((count, i) => count + (i.selected ? 1 : 0), 0);
-    if (!wasSelected && shouldBalance) {
-      if (isActive && playingSelectCount > bench.length) {
-        console.log('SelectPlayer: more active selected than bench depth. Auto unselect active?');
-      } else if (!isActive && benchSelectCount > playing.length) {
-        console.log('SelectPlayer: more bench selected than possible active players. Auto unselect bench?');
-      } else if (isActive && !wasSelected && playingSelectCount > benchSelectCount) {
-        console.debug('SelectPlayer: balance active > bench -> try to auto-select bench');
-        // select the first unselected bench player
-        const benchIdx = newBench.findIndex(player => !player.selected);
-        newBench[benchIdx].selected = true;
-      } else if (!isActive && !wasSelected && benchSelectCount > playingSelectCount) {
-        console.debug('SelectPlayer: balance bench > active -> try to auto-select active');
-        // select the first unselected playing player
-        const activeIdx = newPlaying.findIndex(player => !player.selected);
-        newPlaying[activeIdx].selected = true;
-      }
+    if (balancePlayers && p.playing && p.selected && selectedPlayingCount > selectedBenchCount) {
+      // balancing and just selected an active player
+      // need to auto-select a benched player
+      // console.debug('GameScreen: balance after selecting player');
+      const bench = players.filter(item => !item.playing && !item.selected).sort(sortPlayersByGametimeAsc);
+      if (bench.length > 0) bench[0].selected = true;
     }
-
-    this.setState({ playing: newPlaying, bench: newBench });
+    if (balancePlayers && !p.playing && p.selected && selectedPlayingCount < selectedBenchCount) {
+      // balancing and just selecetd a bench player
+      // need to auto-select a playing player
+      // console.debug('GameScreen: balance after selecting bench');
+      const playing = players.filter(item => item.playing && !item.selected).sort(sortPlayersByGametimeDsc);
+      if (playing.length > 0) playing[0].selected = true;
+    }
+    
+    this.setState({ players });
   }
+
 
   subPlayers() {
-    const { playing, bench } = this.state;
+    const { players } = this.state;
 
-    // validate that subs are valid
-    const selectedActiveCount = playing.filter(item => item.selected).length;
-    const selectedBenchCount = bench.filter(item => item.selected).length;
-    if (selectedActiveCount !== selectedBenchCount) { return; }
+    // assume that the selected players can be sub'd
+    // TODO: add a check?
 
     // copy the player array and swap selected players on/off court
-    let newPlaying = [];
-    let newBench = [];
-    playing.forEach(item => (item.selected ? newBench.push(item) : newPlaying.push(item)));
-    bench.forEach(item => (item.selected ? newPlaying.push(item) : newBench.push(item)));
+    const newplayers = players
+      .map(item => ({ ...item, selected: false, playing: (item.selected ? !item.playing : item.playing) }))
+      .sort(sortPlayersByNumberAsc)
+      .sort(sortPlayersByGametimeAsc);
 
-    // sort the arrays by gametime and number and remove current selections...
-    newPlaying = newPlaying
-      .sort(this.sortPlayersByNumberAsc)
-      .sort(this.sortPlayersByGametimeDsc)
-      .map(p => ({ ...p, selected: false }));
-    newBench = newBench
-      .sort(this.sortPlayersByNumberAsc)
-      .sort(this.sortPlayersByGametimeAsc)
-      .map(a => ({ ...a, selected: false }));
-
-    this.setState({ playing: newPlaying, bench: newBench });
+    this.setState({ players: newplayers });
   }
 
   render() {
-    const { isRunning, msecs, orientation, playing, bench } = this.state;
+    const { isRunning, orientation, players, msecs, ready, name } = this.state;
 
-    const timestr = new Date(msecs).toISOString().substr(14, 5);
-    const selectedActiveCount = playing.filter(item => item.selected).length;
-    const selectedBenchCount = bench.filter(item => item.selected).length;
-
-    const buttons = [
-      <IconButton
-        key="PLAY-PAUSE"
-        onPress={() => this.toggleTimer()}
-        iconName={isRunning ? 'md-pause' : 'md-play'}
-        title={(isRunning ? 'STOP' : 'START')}
-      />,
-      <IconButton
-        key="SUBS"
-        onPress={() => this.subPlayers()}
-        iconName="md-swap"
-        title="SUBS"
-        disabled={selectedActiveCount === 0 || selectedActiveCount !== selectedBenchCount}
-      />,
-      <IconButton
-        key="RESET"
-        onPress={() => this.resetTimer()}
-        iconName="md-timer"
-        title="RESET"
-      />,
-    ];
-
-    if (orientation === 'landscape') {
-      // Landscape mode
+    if (!ready) {
       return (
-        <View style={
-          { flex: 1, alignContent: 'center', backgroundColor: '#cfd8dc', flexDirection: 'column' }
-        }
-        >
-          <View style={{ flex: 0, alignSelf: 'center', alignContent: 'center' }}>
-            <Text style={{ fontSize: 24, color: 'blue' }}>{timestr}</Text>
-          </View>
-          <View style={{ flex: 3, flexDirection: 'column' }}>
-            <View style={styles.titleViewStyle}>
-              <Text style={styles.titleTextStyle}>ON COURT</Text>
-            </View>
-            <View style={{ ...styles.playerListStyle, flexDirection: 'row', margin: 2 }}>
-              {playing.map(item => (
-                <TouchableNativeFeedback
-                  key={item.number}
-                  onPress={() => this.selectPlayer(item.number, true)}
-                >
-                  <View style={{
-                    flex: 0,
-                    borderRadius: 2,
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    width: '20%',
-                    margin: 1,
-                    elevation: item.selected ? 1 : 4,
-                    backgroundColor: item.selected ? '#6ec6ff' : '#ffffff',
-                  }}
-                  >
-                    <Text style={styles.playerNumberStyle}>{item.number}</Text>
-                    <Text style={styles.playerNameStyle}>{item.name}</Text>
-                    <Text style={styles.playerTimeStyle}>
-                      {new Date(item.gameTime).toISOString().substr(14, 5)}
-                    </Text>
-                  </View>
-                </TouchableNativeFeedback>
-              ))}
-            </View>
-          </View>
-          <View style={{ flex: 3, flexDirection: 'column' }}>
-            <View style={styles.titleViewStyle}>
-              <Text style={styles.titleTextStyle}>ON BENCH</Text>
-            </View>
-            <View style={{ ...styles.playerListStyle, flexDirection: 'row', justifyContent: 'center' }}>
-              {bench.map(item => (
-                <TouchableNativeFeedback
-                  key={item.number}
-                  onPress={() => this.selectPlayer(item.number, false)}
-                >
-                  <View style={{
-                    flex: 0,
-                    borderRadius: 2,
-                    margin: 1,
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    width: '20%',
-                    elevation: item.selected ? 1 : 4,
-                    backgroundColor: item.selected ? '#6ec6ff' : '#ffffff',
-                  }}
-                  >
-                    <Text style={styles.playerNumberStyle}>{item.number}</Text>
-                    <Text style={styles.playerNameStyle}>{item.name}</Text>
-                    <Text style={styles.playerTimeStyle}>
-                      {new Date(item.gameTime).toISOString().substr(14, 5)}
-                    </Text>
-                  </View>
-                </TouchableNativeFeedback>
-              ))}
-            </View>
-          </View>
-          <View style={{ flex: 0, flexDirection: 'row' }}>
-            { buttons }
-          </View>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ActivityIndicator size="large" />
         </View>
       );
     }
 
+    const timestr = new Date(msecs).toISOString().substr(14, 5);
+    
+    const playingCount = players.filter(item => item.playing).length;
+    const selectedPlayingCount = players.filter(item => item.selected && item.playing).length;
+    const selectedBenchCount = players.filter(item => item.selected && !item.playing).length;
+    const subButtonEnabled = (playingCount + selectedBenchCount - selectedPlayingCount <= 5) && (selectedPlayingCount + selectedBenchCount > 0);
+
+
+    // if (orientation === 'landscape') {
+    //   // Landscape mode
+    //   return (
+    //     <View style={styles.pageView}>
+    //       <Appbar.Header>
+    //         <Appbar.BackAction onPress={() => { this.handleBackPress(); }} />
+    //         <Appbar.Content title="Play" />
+    //         {/* <Appbar.Action icon="close" accessibilityLabel="cancel" onPress={() => { this.cancelEditTeam(); }} />
+    //         <Appbar.Action icon="check" accessibilityLabel="save" disabled={!saveNeeded} onPress={() => { this.saveTeam(); }} /> */}
+    //       </Appbar.Header>
+    //       <View style={{ flex: 3, flexDirection: 'column' }}>
+    //         <View style={styles.titleViewStyle}>
+    //           <Text style={styles.titleTextStyle}>ON COURT</Text>
+    //         </View>
+    //         <View style={{ ...styles.playerListStyle, flexDirection: 'row', margin: 2 }}>
+    //           {playing.map(item => (
+    //             <TouchableNativeFeedback
+    //               key={item.number}
+    //               onPress={() => this.selectPlayer(item.number, true)}
+    //             >
+    //               <View style={{
+    //                 flex: 0,
+    //                 borderRadius: 2,
+    //                 flexDirection: 'column',
+    //                 alignItems: 'center',
+    //                 width: '20%',
+    //                 margin: 1,
+    //                 elevation: item.selected ? 1 : 4,
+    //                 backgroundColor: item.selected ? '#6ec6ff' : '#ffffff',
+    //               }}
+    //               >
+    //                 <Text style={styles.playerNumberStyle}>{item.number}</Text>
+    //                 <Text style={styles.playerNameStyle}>{item.name}</Text>
+    //                 <Text style={styles.playerTimeStyle}>
+    //                   {new Date(item.gameTime).toISOString().substr(14, 5)}
+    //                 </Text>
+    //               </View>
+    //             </TouchableNativeFeedback>
+    //           ))}
+    //         </View>
+    //       </View>
+    //       <View style={{ flex: 3, flexDirection: 'column' }}>
+    //         <View style={styles.titleViewStyle}>
+    //           <Text style={styles.titleTextStyle}>ON BENCH</Text>
+    //         </View>
+    //         <View style={{ ...styles.playerListStyle, flexDirection: 'row', justifyContent: 'center' }}>
+    //           {bench.map(item => (
+    //             <TouchableNativeFeedback
+    //               key={item.number}
+    //               onPress={() => this.selectPlayer(item.number, false)}
+    //             >
+    //               <View style={{
+    //                 flex: 0,
+    //                 borderRadius: 2,
+    //                 margin: 1,
+    //                 flexDirection: 'column',
+    //                 alignItems: 'center',
+    //                 width: '20%',
+    //                 elevation: item.selected ? 1 : 4,
+    //                 backgroundColor: item.selected ? '#6ec6ff' : '#ffffff',
+    //               }}
+    //               >
+    //                 <Text style={styles.playerNumberStyle}>{item.number}</Text>
+    //                 <Text style={styles.playerNameStyle}>{item.name}</Text>
+    //                 <Text style={styles.playerTimeStyle}>
+    //                   {new Date(item.gameTime).toISOString().substr(14, 5)}
+    //                 </Text>
+    //               </View>
+    //             </TouchableNativeFeedback>
+    //           ))}
+    //         </View>
+    //       </View>
+    //       <View style={styles.footerBar}>
+    //         { buttons }
+    //       </View>
+    //     </View>
+    //   );
+    // }
+
     // Portrait mode
     return (
-      <View style={{ flex: 1, alignItems: 'stretch', flexDirection: 'column' }}>
-        <View style={{ flex: 0, alignSelf: 'center', alignContent: 'center' }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'blue' }}>{timestr}</Text>
-        </View>
+      <View style={styles.pageView}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => { this.handleBackPress(); }} />
+          <Appbar.Content title={`Run Game - ${name}`} />
+          <Appbar.Content style={{ flex: 0 }} title={timestr} />
+        </Appbar.Header>
+
         <View style={{
           flex: 1, flexDirection: 'row', alignItems: 'stretch', margin: 5, justifyContent: 'space-around',
         }}
         >
           <View style={styles.playerListStyle}>
-            <View style={styles.titleViewStyle}>
-              <Text style={styles.titleTextStyle}>BENCH</Text>
-            </View>
-            <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'flex-start' }}>
-              { bench.map(item => (
-                <TouchableNativeFeedback
+            <Title style={{ alignSelf: 'center' }}>BENCH</Title>
+            <ScrollView contentContainerStyle={{ justifyContent: 'flex-start' }}>
+              { players.filter(item => !item.playing).map(item => (
+                <Card
                   key={item.number}
-                  onPress={() => this.selectPlayer(item.number, false)}
-                >
-                  <View style={{
-                    flex: 0,
-                    borderRadius: 2,
-                    margin: 1,
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    height: '20%',
-                    elevation: item.selected ? 1 : 4,
-                    backgroundColor: item.selected ? '#6ec6ff' : '#ffffff',
+                  style={{ marginVertical: 6, borderRadius: 12,
+                    borderColor: item.selected ? 'purple' : '#666',
+                    borderWidth: item.selected ? 2 : 1,
                   }}
-                  >
-                    <Text style={styles.playerNumberStyle}>{item.number}</Text>
-                    <Text style={styles.playerNameStyle}>{item.name}</Text>
-                    <Text style={styles.playerTimeStyle}>
-                      {new Date(item.gameTime).toISOString().substr(14, 5)}
-                    </Text>
-                  </View>
-                </TouchableNativeFeedback>
+                  onPress={() => this.selectPlayer(item.number)}
+                >
+                  <Card.Title
+                    title={item.name}
+                    subtitle={<Title>{new Date(item.gameTime).toISOString().substr(14, 5)}</Title>}
+                    left={props => <Avatar.Text {...props} label={item.number} />}
+                    right={props => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
+                  />
+                  {/* <Card.Content><Text>{JSON.stringify(item)}</Text></Card.Content> */}
+                </Card>
               ))}
-            </View>
+            </ScrollView>
           </View>
           <View style={styles.playerListStyle}>
-            <View style={styles.titleViewStyle}>
-              <Text style={styles.titleTextStyle}>COURT</Text>
-            </View>
-            <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'flex-start' }}>
-              {playing.map(item => (
-                <TouchableNativeFeedback
+            <Title style={{ alignSelf: 'center' }}>COURT</Title>
+            <ScrollView contentContainerStyle={{ justifyContent: 'flex-start' }}>
+              {players.filter(item => item.playing).map(item => (
+                <Card
                   key={item.number}
-                  onPress={() => this.selectPlayer(item.number, true)}
+                  style={{ marginVertical: 6,
+                    borderRadius: 12,
+                    borderColor: item.selected ? 'purple' : '#666',
+                    borderWidth: item.selected ? 2 : 1 }}
+                  onPress={() => this.selectPlayer(item.number)}
                 >
-                  <View style={{
-                    flex: 0,
-                    borderRadius: 2,
-                    margin: 1,
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    height: '20%',
-                    elevation: item.selected ? 1 : 4,
-                    backgroundColor: item.selected ? '#6ec6ff' : '#ffffff',
-                  }}
-                  >
-                    <Text style={styles.playerNumberStyle}>{item.number}</Text>
-                    <Text style={styles.playerNameStyle}>{item.name}</Text>
-                    <Text style={styles.playerTimeStyle}>
-                      {new Date(item.gameTime).toISOString().substr(14, 5)}
-                    </Text>
-                  </View>
-                </TouchableNativeFeedback>
+                  <Card.Title
+                    title={item.name}
+                    subtitle={<Title>{new Date(item.gameTime).toISOString().substr(14, 5)}</Title>}
+                    left={props => <Avatar.Text {...props} label={item.number} />}
+                    right={props => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
+                  />
+                  {/* <Card.Content><Text>{new Date(item.gameTime).toISOString().substr(14, 5)}</Text></Card.Content> */}
+                </Card>
               ))}
-            </View>
+            </ScrollView>
           </View>
         </View>
-        <View style={{ flex: 0, flexDirection: 'row' }}>
-          { buttons }
-        </View>
+        <Appbar style={{ justifyContent: 'space-evenly' }}>
+          <Appbar.Action
+            icon="timer"
+            accessibilityLabel="RESET"
+            onPress={() => this.resetTimer()}
+            disabled={isRunning}
+          />
+          <Appbar.Action
+            icon="swap-horiz"
+            accessibilityLabel="SUBS"
+            size={64}
+            // style={{ borderRadius: 12, backgroundColor: 'yellow' }}
+            onPress={() => this.subPlayers()}
+            disabled={!subButtonEnabled}
+          />
+          { isRunning ? (
+            <Appbar.Action icon="pause" accessibilityLabel="pause" onPress={() => {}} onLongPress={() => { this.stopTimer(); }} />
+          ) : (
+            <Appbar.Action icon="play-arrow" accessibilityLabel="play" onPress={() => { this.startTimer(); }} />
+          ) }
+        </Appbar>
       </View>
     );
   }
 }
 
-GameScreen.navigationOptions = ({ navigation }) => ({
-  title: navigation.getParam('title', 'Court Timer'),
-});
-
 GameScreen.propTypes = {
-  navigation: PropTypes.instanceOf(Object).isRequired,
-  balance: PropTypes.bool,
-  screenProps: PropTypes.instanceOf(Object),
+  id: PropTypes.string,
+  prefs: PropTypes.shape({
+    balancePlayers: PropTypes.bool,
+  }),
 };
 
 GameScreen.defaultProps = {
-  balance: false,
-  screenProps: { balance: false },
+  id: null,
+  prefs: {
+    balancePlayers: false,
+  },
 };
 
 export default GameScreen;

@@ -14,6 +14,8 @@
     "prop-types": "^15.6.2",
     "react": "16.5.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-31.0.0.tar.gz",
+    "react-native-paper": "^2.15.0",
+    "react-native-vector-icons": "^6.0.2",
     "react-navigation": "^2.0.0"
   },
   "devDependencies": {
@@ -23,6 +25,6 @@
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-jsx-a11y": "^6.1.1",
     "eslint-plugin-react": "^7.11.1",
-    "expo-cli": "^2.2.5"
+    "expo-cli": "^2.14.0"
   }
 }

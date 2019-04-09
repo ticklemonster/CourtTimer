@@ -91,9 +91,9 @@ class TeamStore {
   //
   // Home Screen needs a set of keys and names.
   // [key] approach is SLOW this way (get all keys, filter, multiGet all data, parse)
-  // - 1002 teams took 132ms using @CourtTimer:team:[key]:[name]
-  // [key]:[name] approach is FASTER (get all keys, parse)
   // - 1002 teams took 368ms using @CourtTImer:team:[key] and load
+  // [key]:[name] approach is FASTER (get all keys, parse)
+  // - 1002 teams took 132ms using @CourtTimer:team:[key]:[name]
   // But: we're more likely to see < 10 teams, performance impact is negligible
   // (90-100ms vs 80-90ms)
   //
@@ -103,7 +103,7 @@ class TeamStore {
   // But: saves are rare compared to reads
   //
 
-  // getTeams: return an array of { key, name, icon }
+  // getTeams: return an array of { key, name, description, iconName }
   async getTeams() {
     let rval = [];
 
@@ -116,13 +116,15 @@ class TeamStore {
 
       rval = allTeams.map(([key, teamstr]) => {
         const teamobj = JSON.parse(teamstr);
-        return ({ key, name: teamobj.name, iconName: teamobj.iconName });
+        
+        return ({ key, name: teamobj.name, description: teamobj.description, iconName: teamobj.iconName });
       });
     } catch (error) {
       console.error('TeamStore.getTeams() - Error loading data from AsyncStorage: ', error);
       rval = undefined;
     }
 
+    // console.debug('TeamStore.getTeams() => ', JSON.stringify(rval));
     return rval;
   }
 
@@ -174,7 +176,7 @@ class TeamStore {
       team = undefined;
     }
 
-    // console.debug('TeamStore.getTeam() => ', rval);
+    // console.debug('TeamStore.getTeam() => ', team);
     return team;
   }
 
@@ -236,6 +238,7 @@ TeamStore.TEAM_DEFAULTS = {
 TeamStore.SAMPLE_TEAM = {
   key: 'SAMPLE-TEAM-KEY',
   name: 'Sample Team',
+  description: 'Sample team - replace with your own',
   iconName: 'md-basketball',
   players: [
     { number: '4', name: 'Ben', gameTime: 0 },
@@ -244,7 +247,7 @@ TeamStore.SAMPLE_TEAM = {
     { number: '9', name: 'Euan', gameTime: 0 },
     { number: '10', name: 'Chris', gameTime: 0 },
     { number: '11', name: 'Sam', gameTime: 0 },
-    { number: '13', name: 'Jack', gameTime: 0 },
+    { number: '13', name: 'Jed', gameTime: 0 },
     { number: '14', name: 'Alex', gameTime: 0 },
   ],
 };
@@ -252,6 +255,7 @@ TeamStore.SAMPLE_TEAM = {
 TeamStore.NEW_TEAM = {
   key: undefined,
   name: '',
+  description: '',
   iconName: 'md-add',
   players: [],
 };

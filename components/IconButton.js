@@ -1,31 +1,37 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { TouchableNativeFeedback, View, Text, StyleSheet } from 'react-native';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { Ionicons } from '@expo/vector-icons';
+import { colours, colourStyles } from '../styles/common';
 
 
 // Theme light colour: 2196f3 / 6ec6ff / 0069c0
 // Contrast colors: ffab00 / ffdd4b / c67c00
 const styles = StyleSheet.create({
-  IconButtonStyle: {
+  IconButton: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#2196f3',
     margin: 2,
     borderRadius: 8,
+    ...colourStyles.secondaryDark,
   },
-  IconButtonDisabledStyle: {
-    backgroundColor: '#8fa8ac',
-  },
-  IconButtonDefaultText: {
+  IconButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: 'black',
+    ...colourStyles.secondaryDark,
+  },
+  IconButtonDisabled: {
+    flex: 1,
+    alignItems: 'center',
+    margin: 2,
+    borderRadius: 8,
+    ...colourStyles.primaryDark,
   },
   IconButtonDisabledText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4f536a',
+    color: colours.primaryLight,
   },
 });
 
@@ -38,9 +44,13 @@ class IconButton extends React.PureComponent {
         disabled={disabled}
         onPress={onPress}
       >
-        <View style={[styles.IconButtonStyle, disabled && styles.IconButtonDisabledStyle]}>
-          <Ionicons name={iconName} size={18} />
-          <Text style={disabled ? styles.IconButtonDisabledText : styles.IconButtonDefaultText}>
+        <View style={disabled ? styles.IconButtonDisabled : styles.IconButton}>
+          <Ionicons
+            name={iconName}
+            size={18}
+            style={disabled ? styles.IconButtonDisabledText : styles.IconButtonText}
+          />
+          <Text style={disabled ? styles.IconButtonDisabledText : styles.IconButtonText}>
             {title}
           </Text>
         </View>
