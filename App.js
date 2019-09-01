@@ -1,8 +1,6 @@
 import React from 'react';
-import { ScreenOrientation } from 'expo';
 import {
-  ActivityIndicator, AsyncStorage,
-  UIManager, View,
+  ActivityIndicator, AsyncStorage, View 
 } from 'react-native';
 
 import { Colors, DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
@@ -36,21 +34,11 @@ export default class App extends React.Component {
       ready: false,
       prefs: {},
     };
-
-    // enable screen rotation
-    ScreenOrientation.allowAsync(ScreenOrientation.Orientation.ALL_BUT_UPSIDE_DOWN);
-
-    // enable animations
-    // UIManager.setLayoutAnimationEnabledExperimental &&
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-
-    // bind event handlers
   }
 
   async componentDidMount() {
     // Load saved state
-    console.debug('App.js DID MOUNT');
-
+    // console.debug('App.js DID MOUNT');
     const prefsAsStr = await AsyncStorage.getItem('@CourtTimer/prefs');
     const prefs = JSON.parse(prefsAsStr);
 

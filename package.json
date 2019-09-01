@@ -4,27 +4,26 @@
   "private": true,
   "main": "./node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "npx expo start",
+    "start": "set REACT_NATIVE_PACKAGER_HOSTNAME=192.168.0.12 && npx expo start",
     "eject": "npx expo eject",
     "android": "npx expo start --android",
     "ios": "npx expo start --ios"
   },
   "dependencies": {
-    "expo": "^31.0.2",
-    "prop-types": "^15.6.2",
-    "react": "16.5.0",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-31.0.0.tar.gz",
-    "react-native-paper": "^2.15.0",
-    "react-native-vector-icons": "^6.0.2",
-    "react-navigation": "^2.0.0"
+    "react-native": "https://github.com/expo/react-native/archive/sdk-34.0.0.tar.gz",
+    "expo": "^34.0.1",
+    "react": "16.8.3",
+    "prop-types": "^15.7.2",
+    "react-native-paper": "^2.16.0",
+    "react-navigation": "^2.18.3"
   },
   "devDependencies": {
-    "babel-preset-expo": "^5.0.0",
-    "eslint": "^4.0.0",
-    "eslint-config-airbnb": "^17.1.0",
-    "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-jsx-a11y": "^6.1.1",
-    "eslint-plugin-react": "^7.11.1",
-    "expo-cli": "^2.14.0"
+    "babel-preset-expo": "^5.2.0",
+    "eslint": "^6.3.0",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-plugin-react": "^7.14.3",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "expo-cli": "^3.0.0"
   }
 }

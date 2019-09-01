@@ -1,14 +1,24 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Dimensions, BackHandler, ToastAndroid, StyleSheet,
-  View, ScrollView, Text, TouchableNativeFeedback, ActivityIndicator,
+  Dimensions,
+  BackHandler,
+  ToastAndroid,
+  StyleSheet,
+  View,
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
-import { Appbar, IconButton, Card, Headline, Subheading, Title, Avatar, Checkbox } from 'react-native-paper';
+import {
+  Appbar,
+  Card,
+  Title,
+  Avatar,
+  Checkbox,
+} from 'react-native-paper';
 
 
 import TeamStore from '../TeamStore';
-import { INSPECT_MAX_BYTES } from 'buffer';
 
 const DEFAULT_TIME = 1200000;
 
@@ -410,14 +420,16 @@ class GameScreen extends React.Component {
             icon="swap-horiz"
             accessibilityLabel="SUBS"
             size={64}
-            // style={{ borderRadius: 12, backgroundColor: 'yellow' }}
             onPress={() => this.subPlayers()}
             disabled={!subButtonEnabled}
           />
           { isRunning ? (
-            <Appbar.Action icon="pause" accessibilityLabel="pause" onPress={() => {}} onLongPress={() => { this.stopTimer(); }} />
+            <Appbar.Action icon="pause" accessibilityLabel="PAUSE"
+              onPress={() => {}}
+              onLongPress={() => { this.stopTimer(); }}
+            />
           ) : (
-            <Appbar.Action icon="play-arrow" accessibilityLabel="play" onPress={() => { this.startTimer(); }} />
+            <Appbar.Action icon="play-arrow" accessibilityLabel="PLAY" onPress={() => { this.startTimer(); }} />
           ) }
         </Appbar>
       </View>

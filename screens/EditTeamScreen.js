@@ -6,7 +6,7 @@ import {
   Text, ToastAndroid,
 } from 'react-native';
 import { Appbar, TextInput, Subheading, Banner, HelperText, Snackbar, Drawer, Headline, Title,
-  Divider, FAB, Dialog, Portal, Button, IconButton, List, Chip, Avatar,
+  Divider, Dialog, Portal, Button, IconButton, List, Chip, Avatar,
 } from 'react-native-paper';
 
 import TeamStore from '../TeamStore';
