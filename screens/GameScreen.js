@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import {
   Appbar,
@@ -33,11 +33,11 @@ const styles = StyleSheet.create({
     flex: 1, margin: 5,
   },
   titleViewStyle: {
-    // ...colourStyles.secondaryDark, 
+    // ...colourStyles.secondaryDark,
     flex: 0, paddingHorizontal: 5, borderRadius: 8,
   },
   titleTextStyle: {
-    // ...colourStyles.secondaryDark, 
+    // ...colourStyles.secondaryDark,
     fontSize: 18, fontWeight: 'bold', alignSelf: 'center',
   },
   playerCardStyle: {
@@ -121,9 +121,11 @@ class GameScreen extends React.Component {
   onTeamDataLoaded(team) {
     const { prefs } = this.props;
     const { balancePlayers } = prefs;
-    
+
     console.debug(`GameScreen.onTeamDataLoaded() - fetched team key=${team.key} name=${team.name}`);
-    const players = team.players.map(item => ({ ...item, gameTime: 0, selected: false, playing: false }));
+    const players = team.players.map((item) => (
+      { ...item, gameTime: 0, selected: false, playing: false }
+    ));
     if (balancePlayers && players.length >= 5) {
       // automatically select a starting five...
       for (let i = 0; i < 5; i++) players[i].playing = true;
@@ -173,7 +175,9 @@ class GameScreen extends React.Component {
     }
 
     // update the active players
-    const newPlayers = players.map(item => ({ ...item, gameTime: item.playing ? item.gameTime + elapsed : item.gameTime }) );
+    const newPlayers = players.map((item) => (
+      { ...item, gameTime: item.playing ? item.gameTime + elapsed : item.gameTime }
+    ));
 
     this.setState({ msecs: newtime, players: newPlayers });
   }
@@ -200,7 +204,7 @@ class GameScreen extends React.Component {
     } else {
       // reest the court time for all players
       const newplayers = players
-        .map(item => ({ ...item, gameTime: 0 }))
+        .map((item) => ({ ...item, gameTime: 0 }))
         .sort(sortPlayersByNumberAsc);
       this.setState({ players: newplayers });
     }
@@ -211,27 +215,30 @@ class GameScreen extends React.Component {
     const { prefs } = this.props;
     const { balancePlayers } = prefs;
 
-    const p = players.find(item => item.number === number);
+    const p = players.find((item) => item.number === number);
     p.selected = !p.selected;
 
-    const selectedPlayingCount = players.filter(item => item.selected && item.playing).length;
-    const selectedBenchCount = players.filter(item => item.selected && !item.playing).length;
+    const selectedPlayingCount = players.filter((item) => item.selected && item.playing).length;
+    const selectedBenchCount = players.filter((item) => item.selected && !item.playing).length;
 
     if (balancePlayers && p.playing && p.selected && selectedPlayingCount > selectedBenchCount) {
       // balancing and just selected an active player
       // need to auto-select a benched player
       // console.debug('GameScreen: balance after selecting player');
-      const bench = players.filter(item => !item.playing && !item.selected).sort(sortPlayersByGametimeAsc);
+      const bench = players
+        .filter((item) => !item.playing && !item.selected)
+        .sort(sortPlayersByGametimeAsc);
       if (bench.length > 0) bench[0].selected = true;
     }
     if (balancePlayers && !p.playing && p.selected && selectedPlayingCount < selectedBenchCount) {
       // balancing and just selecetd a bench player
       // need to auto-select a playing player
       // console.debug('GameScreen: balance after selecting bench');
-      const playing = players.filter(item => item.playing && !item.selected).sort(sortPlayersByGametimeDsc);
+      const playing = players.filter((item) => item.playing && !item.selected)
+        .sort(sortPlayersByGametimeDsc);
       if (playing.length > 0) playing[0].selected = true;
     }
-    
+
     this.setState({ players });
   }
 
@@ -244,7 +251,11 @@ class GameScreen extends React.Component {
 
     // copy the player array and swap selected players on/off court
     const newplayers = players
-      .map(item => ({ ...item, selected: false, playing: (item.selected ? !item.playing : item.playing) }))
+      .map((item) => ({
+        ...item,
+        selected: false,
+        playing: (item.selected ? !item.playing : item.playing),
+      }))
       .sort(sortPlayersByNumberAsc)
       .sort(sortPlayersByGametimeAsc);
 
@@ -263,11 +274,12 @@ class GameScreen extends React.Component {
     }
 
     const timestr = new Date(msecs).toISOString().substr(14, 5);
-    
-    const playingCount = players.filter(item => item.playing).length;
-    const selectedPlayingCount = players.filter(item => item.selected && item.playing).length;
-    const selectedBenchCount = players.filter(item => item.selected && !item.playing).length;
-    const subButtonEnabled = (playingCount + selectedBenchCount - selectedPlayingCount <= 5) && (selectedPlayingCount + selectedBenchCount > 0);
+
+    const playingCount = players.filter((item) => item.playing).length;
+    const selectedPlayingCount = players.filter((item) => item.selected && item.playing).length;
+    const selectedBenchCount = players.filter((item) => item.selected && !item.playing).length;
+    const subButtonEnabled = (playingCount + selectedBenchCount - selectedPlayingCount <= 5)
+      && (selectedPlayingCount + selectedBenchCount > 0);
 
 
     // if (orientation === 'landscape') {
@@ -365,10 +377,12 @@ class GameScreen extends React.Component {
           <View style={styles.playerListStyle}>
             <Title style={{ alignSelf: 'center' }}>BENCH</Title>
             <ScrollView contentContainerStyle={{ justifyContent: 'flex-start' }}>
-              { players.filter(item => !item.playing).map(item => (
+              { players.filter((item) => !item.playing).map((item) => (
                 <Card
                   key={item.number}
-                  style={{ marginVertical: 6, borderRadius: 12,
+                  style={{
+                    marginVertical: 6,
+                    borderRadius: 12,
                     borderColor: item.selected ? 'purple' : '#666',
                     borderWidth: item.selected ? 2 : 1,
                   }}
@@ -377,8 +391,8 @@ class GameScreen extends React.Component {
                   <Card.Title
                     title={item.name}
                     subtitle={<Title>{new Date(item.gameTime).toISOString().substr(14, 5)}</Title>}
-                    left={props => <Avatar.Text {...props} label={item.number} />}
-                    right={props => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
+                    left={(props) => <Avatar.Text {...props} label={item.number} />}
+                    right={(props) => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
                   />
                   {/* <Card.Content><Text>{JSON.stringify(item)}</Text></Card.Content> */}
                 </Card>
@@ -388,7 +402,7 @@ class GameScreen extends React.Component {
           <View style={styles.playerListStyle}>
             <Title style={{ alignSelf: 'center' }}>COURT</Title>
             <ScrollView contentContainerStyle={{ justifyContent: 'flex-start' }}>
-              {players.filter(item => item.playing).map(item => (
+              {players.filter((item) => item.playing).map((item) => (
                 <Card
                   key={item.number}
                   style={{ marginVertical: 6,
@@ -400,10 +414,9 @@ class GameScreen extends React.Component {
                   <Card.Title
                     title={item.name}
                     subtitle={<Title>{new Date(item.gameTime).toISOString().substr(14, 5)}</Title>}
-                    left={props => <Avatar.Text {...props} label={item.number} />}
-                    right={props => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
+                    left={(props) => <Avatar.Text {...props} label={item.number} />}
+                    right={(props) => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
                   />
-                  {/* <Card.Content><Text>{new Date(item.gameTime).toISOString().substr(14, 5)}</Text></Card.Content> */}
                 </Card>
               ))}
             </ScrollView>
@@ -424,7 +437,9 @@ class GameScreen extends React.Component {
             disabled={!subButtonEnabled}
           />
           { isRunning ? (
-            <Appbar.Action icon="pause" accessibilityLabel="PAUSE"
+            <Appbar.Action
+              icon="pause"
+              accessibilityLabel="PAUSE"
               onPress={() => {}}
               onLongPress={() => { this.stopTimer(); }}
             />

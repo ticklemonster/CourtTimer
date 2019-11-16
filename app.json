@@ -7,9 +7,9 @@
 		"sdkVersion": "34.0.0",
 		"version": "0.3.0",
 		"icon": "./assets/bballtimer.png",
-		"platforms": [
-			"android"
-		],
+		"android": {
+			"package": "com.ticklemonster.courttimer"
+		},
 		"orientation": "default"
 	}
 }
