@@ -1,417 +1,244 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import { ActivityIndicator, View } from 'react-native';
 import {
-  BackHandler, StyleSheet, ActivityIndicator,
-  View, KeyboardAvoidingView, ScrollView, FlatList,
-  Text, ToastAndroid,
-} from 'react-native';
-import { Appbar, TextInput, Subheading, Banner, HelperText, Snackbar, Drawer, Headline, Title,
-  Divider, Dialog, Portal, Button, IconButton, List, Chip, Avatar, FAB
+  TextInput, Button, List, Avatar, Surface, Headline, Subheading, Divider, Snackbar,
 } from 'react-native-paper';
+import { SwipeListView } from 'react-native-swipe-list-view';
 
-import TeamStore from '../TeamStore';
+import TeamStore from '../stores/TeamStore';
+import ConfirmButton from '../components/ConfirmButton';
+import { colours, styles } from '../styles/CourtTimerStyles';
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
-  playerListContainer: {
-    flex: 1,
-    borderWidth: 1,
-    padding: 10,
-  },
+function EditTeamScreen({ navigation, route }) {
+  const { id } = route.params;
 
-  playerListStyle: {
-    // backgroundColor: '#cfd8dc', borderWidth: 5, borderColor: '#0069c0' };
-    margin: 5,
-  },
-  titleViewStyle: {
-    backgroundColor: '#0069c0',
-    paddingHorizontal: 5,
-  },
-  titleTextStyle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    alignSelf: 'center',
-    color: 'white',
-    marginTop: 5,
-  },
-  warningMessageViewStyle: {
-    backgroundColor: 'orange',
-    marginVertical: 10,
-    padding: 8,
-  },
-  warningMessageTextStyle: {
-    fontSize: 18,
-    color: 'black',
-  },
-});
+  const [team, setTeam] = useState(null);
+  const [undo, setUndo] = useState([]);
+  const [showUndoSnack, setShowUndoSnack] = useState(false);
 
-const hex2rgba = (hex, alpha = 1) => {
-  const [r, g, b] = hex.match(/\w\w/g).map(x => parseInt(x, 16));
-  return `rgba(${r},${g},${b},${alpha})`;
-};
-
-class EditTeamScreen extends React.Component {
-  constructor(props) {
-    super(props);
-
-    // setup an initial blank team structure
-    this.state = {
-      ready: false,
-      name: '',
-      description: '',
-      players: [],
-      editing: null,
-      saveNeeded: false,
-    };
-
-    // bind event handlers
-    this.onTeamDataLoaded = this.onTeamDataLoaded.bind(this);
-    this.handleBackPress = this.handleBackPress.bind(this);
-    this.updateTeamName = this.updateTeamName.bind(this);
-    this.updateTeamDescription = this.updateTeamDescription.bind(this);
-  }
-
-  //
-  // Component Lifecycle Events
-  //
-  componentDidMount() {
-    const { id } = this.props;
-
-    console.debug(`EditTeamScreen with team key: ${id}`);
-    TeamStore.getTeam(id).then(this.onTeamDataLoaded);
-
-    BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
-  }
-
-  componentWillUnmount() {
-    BackHandler.removeEventListener('hardwareBackPress', this.handleBackPress);
-  }
-
-  onTeamDataLoaded(team) {
-    console.debug('EditTeamScreen.onTeamDataLoaded -', (team && team.name) || 'NEW TEAM');
-    if (team === null) {
-      this.setState({ ready: true, name: '', description: '', players: [] });
+  // action functions
+  const loadTeamData = async (teamId) => {
+    if (teamId === null || teamId === undefined) {
+      setTeam(await TeamStore.createTeam());
     } else {
-      this.setState({ ready: true, name: team.name, description: team.description, players: team.players.slice() });
+      const newteam = (await TeamStore.readTeam(id)) || TeamStore.createTeam();
+      setTeam(newteam);
+      setUndo([]);
     }
-  }
+  };
 
-  // eslint-disable-next-line react/sort-comp
-  handleBackPress() {
-    const { onBack } = this.props;
-    const { saveNeeded } = this.state;
-
-    if (saveNeeded) {
-      ToastAndroid.show('Press back again to cancel edits', ToastAndroid.LONG);
-      this.setState({ saveNeeded: false });
-      return true;
-    }
-
-    onBack();
-    return true;
-  }
-
-  //
-  // Team update functions
-  //
-  updateTeamName(newName) {
-    this.setState({ name: newName, saveNeeded: true });
-  }
-
-  updateTeamDescription(newDescription) {
-    this.setState({ description: newDescription, saveNeeded: true });
-  }
-
-  //
-  // Payer row data functions
-  //
-
-  deletePlayer(number) {
-    const { players } = this.state;
-
-    try {
-      const undoPlayers = players.slice();
-      const postPlayers = players.filter(item => item.number !== number);
-
-      this.setState({ players: postPlayers, saveNeeded: true, undoState: { players: undoPlayers }, warningMessage: `Player #${number} deleted`})
-    } catch (err) {
-      console.error(`Error deleting player #${number}:`, err);
-    }
-    
-  }
-
-  //
-  // Player editing
-  //
-  startEditPlayer(player) {
-    const { players } = this.state;
-
-    const name = player ? player.name : '';
-    const number = player ? player.number : '';
-    const count = players.reduce((prev, curr) => prev + (curr.number === number), 0);
-    const editing = { id: number, name, number, duplicatenumber: (count > 1) };
-
-    this.setState({ editing });
-  }
-
-  onEditName(newname) {
-    const { editing } = this.state;
-
-    if (editing === null) return;
-
-    const newediting = { ...editing, name: newname };
-    this.setState({ editing: newediting });
-  }
-
-  onEditNumber(newnumber) {
-    const { editing, players } = this.state;
-
-    if (editing === null) return;
-
-    const count = players.reduce((prev, curr) => prev + (curr.number === newnumber && curr.number !== editing.id), 0);
-
-    const newediting = { ...editing, number: newnumber, duplicatenumber: (count > 0) };
-
-    console.debug('onEditNumber: ', newediting);
-
-    this.setState({ editing: newediting });
-  }
-
-  savePlayerEdits() {
-    const { editing, players } = this.state;
-
-    if (editing === null) return;
-    console.debug(`SavePlayerEdits: #${editing.id} => ${editing.number}. ${editing.name}`);
-
-    if (editing.duplicatenumber) {
-      this.setState({ editing: null, warningMessage: 'Duplicate player numbers not allowed. Changes not saved.'});
-      return;
-    }
-
-    // duplicate the player list with full object copy!
-    const newplayers = [];
-    for (let p = 0; p < players.length; p++) {
-      const player = Object.assign({}, players[p]);
-      if (player.number === editing.id) {
-        player.name = editing.name;
-        player.number = editing.number;
-      }
-      newplayers.push(player);
-    }
-    if (!newplayers.find(item => item.number === editing.number)) {
-      newplayers.push({ number: editing.number, name: editing.name });
-    }
-    newplayers.sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
-
-    this.setState({ players: newplayers, editing: null });
-  }
-
-  undoAction() {
-    const { undoState } = this.state;
-
-    if (!undoState) {
-      console.warn('UndoAction with no undo buffer!');
-      return;
-    }
-
-    this.setState({ undoState: null, ...undoState });
-  }
-  
-  //
-  // Persist team data functions
-  //
-  async deleteTeam() {
-    const { id, onBack } = this.props;
-
+  const handleDeleteTeamPressed = async () => {
     await TeamStore.deleteTeam(id);
-    onBack();
-  }
+    navigation.popToTop();
+  };
 
-  async saveTeam() {
-    const { id, onBack } = this.props;
-    const { saveNeeded, name, description, players } = this.state;
+  const handleDeletePlayer = async (player) => {
+    console.debug('TODO: Should Delete Player: ', player);
+    await TeamStore.deletePlayer(player);
 
-    if (!saveNeeded) return;
+    loadTeamData(id);
+  };
 
-    // build a new team object from the current (edited) state...
-    const newTeamRecord = {
-      key: id,
-      name,
-      description,
-      players,
+  const saveChanges = async () => {
+    console.debug('Saving changes...');
+    if (team === undo[0]) {
+      console.debug('No changes to be saved');
+      return;
+    }
+
+    const lastData = await TeamStore.readTeam(id);
+    const savedData = await TeamStore.updateTeam(team);
+    if (lastData) setUndo([lastData, ...undo]);
+    setTeam(savedData);
+    setShowUndoSnack(true);
+  };
+
+  const undoAction = async () => {
+    setShowUndoSnack(false);
+    if (undo && undo.length > 0) {
+      const undoVal = undo[0];
+      setUndo(undo.slice(1));
+      console.debug('Undo last change -> ', undoVal);
+      if (undoVal) {
+        const undodata = await TeamStore.updateTeam(undoVal);
+        setTeam(undodata);
+      }
+    }
+  };
+
+  // Set up the initial state on load
+  useEffect(() => {
+    navigation.setOptions({ onUndo: null });
+    navigation.addListener('focus', loadTeamData);
+
+    return () => navigation.removeListener('focus');
+  }, []);
+
+  // Load team data if there is a change in id prop
+  useEffect(() => {
+    console.debug(`EditTeamScreen: id prop set to ${id}`);
+    loadTeamData(id);
+
+    return () => {
+      console.debug(`EditTeamScreen: id prop changing from ${id}`);
     };
+  }, [route]);
 
-    await TeamStore.updateTeam(newTeamRecord);
-    onBack();
-  }
+  // update the actions on the app bar
+  useEffect(() => {
+    console.debug(`Undo list: ${undo.length}`, undo);
+    navigation.setOptions({ onUndo: (undo.length > 0) ? undoAction : null });
+  }, [undo]);
 
-  cancelEditTeam() {
-    const { onBack } = this.props;
+  // Show activity screen until the team info is loaded...
+  if (team === null) return <ActivityIndicator size="large" style={styles.centered} />;
 
-    if (!this.handleBackPress()) {
-      onBack();
-    }
-  }
+  //
+  // -- Render helper functions --
+  //
 
-  playersAsList(players, theme) {
-    // const accentBg = hex2rgba(theme.colors.accent, 0.3);
-    return (
-      <FlatList
-        data={players}
-        keyExtractor={item => item.number}
-        renderItem={({ item }) => (
-          <List.Item
-            theme={theme}
-            left={() => (
-              <Avatar.Text label={item.number} size={36} />
-            )}
-            title={item.name}
-            right={() => (
-              <IconButton
-                theme={theme}
-                style={{ margin: 0, pading: 0 }}
-                icon="close"
-                onPress={() => this.deletePlayer(item.number)}
-              />
-            )}
-            onPress={() => this.startEditPlayer(item)}
-          />
-        )}
-      />);
-  }
+  // List render helpers
+  const emptyListComponent = () => (
+    <Subheading style={{ paddingVertical: '1em' }}>No players here</Subheading>
+  );
 
-  playersAsChips(players, theme) {
-    return (
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-        { players.map(item => (
-          <Chip
-            theme={theme}
-            style={{ margin: 6 }}
-            key={item.number}
-            avatar={<Avatar.Text theme={theme} label={item.number} size={36} />}
-            mode="flat"
-            onPress={() => this.startEditPlayer(item)}
-            onClose={() => this.deletePlayer(item.number)}
-          >
-            {item.name}
-          </Chip>
-        ))}
-      </View>
+  const renderHiddenItem = (rowData /* , rowMap */) => (
+    <View style={styles.playerListBack}>
+      <Button
+        icon="delete"
+        mode="contained"
+        style={styles.playerBackDangerButton}
+        onPress={() => handleDeletePlayer(rowData.item)}
+      >
+        Delete
+      </Button>
+    </View>
+  );
+
+  const renderPlayerItem = (rowData) => {
+    const { item } = rowData;
+
+    // console.debug('renderPlayerItem: ', item);
+    const playerNumberAvatar = () => (
+      <Avatar.Text size={36} label={`${item.number}`} />
     );
-  }
 
-  render() {
-    const { ready, warningMessage, name, description, players, saveNeeded, editing } = this.state;
-    const { theme, prefs } = this.props;
-    const { showMembersAsList } = prefs;
-
-    if (!ready) {
-      return <ActivityIndicator size="large" />;
-    }
-
-    //
-    // RENDER
-    //
     return (
-      <React.Fragment>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={() => { this.cancelEditTeam(); }} />
-          <Appbar.Content title={`Edit Team - ${name}`} />
-          <Appbar.Action icon="check" accessibilityLabel="save" disabled={!saveNeeded} onPress={() => { this.saveTeam(); }} />
-        </Appbar.Header>
+      <List.Item
+        style={styles.playerListRow}
+        left={playerNumberAvatar}
+        titleStyle={{ fontSize: 20, marginLeft: 8 }}
+        title={item.name}
+        onPress={() => navigation.navigate('Edit.Player', { teamId: id, playerId: String(item.id) })}
+      />
+    );
+  };
 
-        <View style={{ ...styles.container, backgroundColor: theme.colors.background, paddingHorizontal: 16 }}>
-          {/* <KeyboardAvoidingView enabled behavior="padding" keyboardVerticalOffset={100}> */}
-          <Headline style={{ color: theme.colors.primary }}>Team Details</Headline>
-          <TextInput label="Team Name:" value={name} placeholder="My Team Name" onChangeText={this.updateTeamName} />
-          <TextInput label="Details:" value={description} placeholder="Description" onChangeText={this.updateTeamDescription} />
-
-          <Headline style={{ color: theme.colors.primary, marginTop: 16 }}>
-            {`Players (${players.length})`}
-          </Headline>
-          <ScrollView>
-            {showMembersAsList ? this.playersAsList(players, theme) : this.playersAsChips(players, theme)}
-          </ScrollView>
-          {/* </KeyboardAvoidingView> */}
-        </View>
-
-        <FAB
-          style={{ position: 'absolute', margin: 16, bottom: 0, alignSelf: 'center' }}
-          // small
-          icon="add"
-          onPress={() => this.startEditPlayer(null)}
+  //
+  // RENDER - Edit Team Screen
+  //
+  const headlineIcon = () => (<List.Icon icon="account" size="1.5em" />);
+  const headlineButton = () => (
+    <Button
+      mode="outlined"
+      style={{ alignSelf: 'flex-end' }}
+      onPress={() => navigation.navigate('Edit.Player', { teamId: id })}
+    >
+      Add Player
+    </Button>
+  );
+  return (
+    <View style={styles.page}>
+      <Surface style={styles.container}>
+        <TextInput
+          style={{ width: '100%', fontSize: 24 }}
+          mode="outlined"
+          label="Team Name:"
+          value={team.name}
+          placeholder="My Team Name"
+          onChangeText={(txt) => setTeam({ ...team, name: txt })}
+          onBlur={saveChanges}
+        />
+        <TextInput
+          style={{ width: '100%', fontSize: 18 }}
+          mode="outlined"
+          label="Details:"
+          multiline
+          numberOfLines={2}
+          value={team.description}
+          placeholder="Additional Details"
+          onChangeText={(txt) => setTeam({ ...team, description: txt })}
+          onBlur={saveChanges}
         />
 
-        <Snackbar
-          visible={warningMessage}
-          style={{ paddingRight: 20 }}
-          onDismiss={() => this.setState({ warningMessage: null, undoState: null })}
-          action={{ label: 'UNDO', onPress: () => this.undoAction() }}
-        >
-          {warningMessage}
-        </Snackbar>
+        <Divider style={{ marginVertical: 8 }} />
 
-        <Portal>
-          {editing && (
-          <Dialog
-            visible
-            onDismiss={() => this.setState({ editing: null })}>
-            <Dialog.Title>Update Player Details</Dialog.Title>
-            <Dialog.Content>
-              <View style={{ flexDirection: 'row' }}>
-                <TextInput
-                  style={{ flex: 1, marginRight: 2 }}
-                  label="No."
-                  value={editing.number}
-                  placeholder="00"
-                  keyboardType="number-pad"
-                  error={editing.duplicatenumber}
-                  onChangeText={(t) => { this.onEditNumber(t); }}
-                />
-                <TextInput
-                  style={{ flex: 4 }}
-                  label="Name"
-                  value={editing.name}
-                  placeholder="Enter Name"
-                  onChangeText={(t) => { this.onEditName(t); }}
-                />
-              </View>
-              <HelperText type="error" visible={editing.duplicatenumber}>
-                <Text>Duplicate player number!</Text>
-              </HelperText>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => this.savePlayerEdits()}>SAVE</Button>
-              <Button onPress={() => this.setState({ editing: null })}>CANCEL</Button>
-            </Dialog.Actions>
-          </Dialog>
-          )}
-        </Portal>
-      </React.Fragment>
-    );
-  }
+        <List.Item
+          left={headlineIcon}
+          title={(<Headline>Players</Headline>)}
+          right={headlineButton}
+        />
+
+        <SwipeListView
+          data={team.players}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPlayerItem}
+          renderHiddenItem={renderHiddenItem}
+          // leftOpenValue={100}
+          closeOnRowOpen
+          closeOnRowPress
+          disableRightSwipe
+          rightOpenValue={-100}
+          rightActivationValue={-200}
+          rightActionValue={-250}
+          // onRightActionStatusChange={(data) => console.debug('Right Action Status Change', data)}
+          onRightAction={(key) => handleDeletePlayer({ teamId: id, id: key })}
+          ListEmptyComponent={emptyListComponent}
+        />
+
+        <View style={styles.bottomDeleteBar}>
+          <ConfirmButton
+            confirmTitle="Delete Team"
+            confirmText={`Are you sure you want to delete this team (${team.name})?`}
+            confirmLabel="Delete"
+            onPress={handleDeleteTeamPressed}
+            color={colours.danger}
+          >
+            Delete Team
+          </ConfirmButton>
+        </View>
+      </Surface>
+      <Snackbar
+        visible={showUndoSnack}
+        style={styles.snackSave}
+        onDismiss={() => setShowUndoSnack(false)}
+        action={{ label: 'UNDO', color: colours.primaryLight, onPress: () => undoAction() }}
+      >
+        Team changes saved
+      </Snackbar>
+
+    </View>
+  );
 }
 
-EditTeamScreen.propTypes = {
-  id: PropTypes.string,
-  theme: PropTypes.shape(),
-  prefs: PropTypes.shape({ showMembersAsList: PropTypes.bool }),
-  onBack: PropTypes.func.isRequired,
-};
+//
+// PROPTYPE VALIDATION
+//
 
-EditTeamScreen.defaultProps = {
-  id: null,
-  theme: {},
-  prefs: { showMembersAsList: false },
+EditTeamScreen.propTypes = {
+  navigation: PropTypes.shape({
+    navigate: PropTypes.func.isRequired,
+    popToTop: PropTypes.func.isRequired,
+    addListener: PropTypes.func,
+    removeListener: PropTypes.func,
+    setOptions: PropTypes.func,
+  }).isRequired,
+  route: PropTypes.shape({
+    params: PropTypes.shape({
+      id: PropTypes.string,
+    }),
+  }).isRequired,
 };
 
 export default EditTeamScreen;

@@ -1,107 +1,86 @@
-import React from 'react';
-import { View, StyleSheet, BackHandler } from 'react-native';
-import { Appbar, List, Switch } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, BackHandler } from 'react-native';
+import { ActivityIndicator, List, Switch } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import PropTypes from 'prop-types';
 
+import { styles } from '../styles/CourtTimerStyles';
 
 const DEFAULT_PREFS = {
   showMembersAsList: true,
   balancePlayers: false,
 };
 
-class PreferencesScreen extends React.Component {
-  constructor(props) {
-    super(props);
+async function loadPrefs() {
+  const prefsAsStr = await AsyncStorage.getItem('@CourtTimer/prefs');
 
-    const { prefs } = props;
+  if (prefsAsStr === null) return { ...DEFAULT_PREFS };
+  return JSON.parse(prefsAsStr);
+}
 
-    this.state = { ...DEFAULT_PREFS, ...prefs };
-    this.onHardwareBackPress = this.onHardwareBackPress.bind(this);
-  }
+async function savePrefs(prefs) {
+  const prefsAsStr = JSON.stringify(prefs);
+  await AsyncStorage.setItem('@CourtTimer/prefs', prefsAsStr);
+}
 
-  componentDidMount() {
-    BackHandler.addEventListener('hardwareBackPress', this.onHardwareBackPress);
-  }
-
-  componentWillUnmount() {
-    BackHandler.removeEventListener('hardwareBackPress', this.onHardwareBackPress);
-  }
-
-  onHardwareBackPress() {
-    this.onBackPressed();
+function PreferencesScreen({ navigation }) {
+  const onBackPressed = () => {
+    if (navigation.canGoBack()) navigation.goBack();
     return true;
+  };
+
+  const [prefs, setPrefs] = useState(null);
+  useEffect(() => {
+    loadPrefs().then((p) => setPrefs(p));
+    BackHandler.addEventListener('hardwareBackPress', onBackPressed);
+
+    return () => {
+      BackHandler.removeEventListener('hardwareBackPress', onBackPressed);
+    };
+  }, []);
+
+  const updatePref = async (key, val) => {
+    const newPrefs = { ...prefs };
+    newPrefs[key] = val;
+    await savePrefs(newPrefs);
+    setPrefs(newPrefs);
+  };
+
+  const prefSwitch = (name) => (
+    <Switch
+      value={prefs[name]}
+      onValueChange={(v) => { updatePref(name, v); }}
+    />
+  );
+
+  if (prefs === null) {
+    return <ActivityIndicator size="large" style={styles.centered} />;
   }
 
-  onBackPressed() {
-    const { onBack } = this.props;
-    onBack(this.state);
-  }
+  return (
+    <View style={styles.container}>
+      <List.Item
+        title="Show Team Members as list"
+        description="Team members can be displayed in a list or as chips"
+        right={() => prefSwitch('showMembersAsList')}
+      />
 
-  render() {
-    const { theme } = this.props;
-    const { showMembersAsList, balancePlayers } = this.state;
+      <List.Item
+        title="Auto-select subs"
+        description="Choose a substitue player automatically based on the time spent on-court"
+        right={() => prefSwitch('balancePlayers')}
+      />
 
-    // Set up some styling
-    const styles = StyleSheet.create({
-      container: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: theme.colors.background,
-      },
-    });
-
-    // Show the team list...
-    // console.debug( this.props.theme.palette );
-
-    return (
-      <React.Fragment>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={() => this.onBackPressed()} />
-          <Appbar.Content title="Court Timer" subtitle="Preferences" />
-        </Appbar.Header>
-
-        <View style={styles.container}>
-          <List.Item
-            title="Show Team Members as list"
-            description="Team members can be displayed in a list or as chips"
-            right={ () => (
-              <Switch
-                value={showMembersAsList}
-                onValueChange={(v) => { this.setState({ showMembersAsList: v }); }}
-              />
-            )}
-          />
-
-          <List.Item
-            title="Auto-select subs"
-            description="Choose a substitue player automatically based on the time spent on-court"
-            right={ () => (
-              <Switch
-                value={balancePlayers}
-                onValueChange={(v) => { this.setState({ balancePlayers: v }); }}
-              />
-            )}
-          />
-
-        </View>
-      </React.Fragment>
-    );
-  }
-
+    </View>
+  );
 }
 
 PreferencesScreen.propTypes = {
-  prefs: PropTypes.shape({
-    teamMembersAsList: PropTypes.bool,
-  }),
-  theme: PropTypes.instanceOf(Object),
-  onBack: PropTypes.func,
-};
-
-PreferencesScreen.defaultProps = {
-  prefs: {},
-  theme: {},
-  onBack: () => console.debug('PreferencesScreen onSave not provided.'),
+  navigation: PropTypes.shape({
+    canGoBack: PropTypes.func.isRequired,
+    goBack: PropTypes.func,
+  }).isRequired,
 };
 
 export default PreferencesScreen;
+export { loadPrefs, savePrefs };

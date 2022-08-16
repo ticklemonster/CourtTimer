@@ -1,12 +1,13 @@
 import React from 'react';
-import {
-  ActivityIndicator, AsyncStorage, View 
-} from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors, DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
 
+import TopAppBar from './components/TopAppBar';
 import TeamListScreen from './screens/TeamListScreen';
 import EditTeamScreen from './screens/EditTeamScreen';
+import EditPlayerScreen from './screens/EditPlayerScreen';
 import GameScreen from './screens/GameScreen';
 import PreferencesScreen from './screens/PreferencesScreen';
 
@@ -20,101 +21,33 @@ const theme = {
   },
 };
 
+const Stack = createNativeStackNavigator();
 
-const WaitScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" /></View>
-);
-
-export default class App extends React.Component {
-  constructor() {
-    super();
-    this.state = {
-      screen: null,
-      id: null,
-      ready: false,
-      prefs: {},
-    };
-  }
-
-  async componentDidMount() {
-    // Load saved state
-    // console.debug('App.js DID MOUNT');
-    const prefsAsStr = await AsyncStorage.getItem('@CourtTimer/prefs');
-    const prefs = JSON.parse(prefsAsStr);
-
-    const screen = await AsyncStorage.getItem('@CourtTimer/currentView');
-    const id = await AsyncStorage.getItem('@CourtTimer/currentKey');
-
-    this.setState({ ready: true, screen: screen || 'TEAM_LIST', id, prefs });
-  }
-
-  componentWillUnmount() {
-  }
-
-  changeScreen(toScreen, toId) {
-    AsyncStorage.setItem('@CourtTimer/currentView', toScreen);
-    AsyncStorage.setItem('@CourtTimer/currentKey', toId);
-
-    this.setState({ screen: toScreen, id: toId });
-  }
-
-  async updatePrefs(newprefs) {
-    const { prefs } = this.state;
-
-    const mixedPrefs = Object.assign({}, prefs, newprefs);
-    const prefsAsStr = JSON.stringify(mixedPrefs);
-
-    await AsyncStorage.setItem('@CourtTimer/prefs', prefsAsStr);
-    this.setState({ prefs: mixedPrefs });
-  }
-
-  onEditSave = () => {
-    console.log('SAVE EDITS')
-  }
-
-  render() {
-    const { ready, screen, id, prefs } = this.state;
-
-    if (!ready) {
-      return (<WaitScreen />);
-    }
-
-    return (
-      <PaperProvider theme={theme}>
-        { screen === 'PREFERENCES' && (
-          <PreferencesScreen
-            prefs={prefs}
-            theme={theme}
-            onBack={(p) => { this.updatePrefs(p); this.changeScreen('TEAM_LIST', null); } }
-          />
-        )}
-        { screen === 'GAME_TIMER' && (
-          <GameScreen
-            prefs={prefs}
-            theme={theme}
-            id={id}
-            onBack={() => { this.changeScreen('TEAM_LIST', null); }}
-          />
-        )}
-        { screen === 'EDIT_TEAM' && (
-          <EditTeamScreen
-            prefs={prefs}
-            theme={theme}
-            id={id}
-            onBack={() => { this.changeScreen('TEAM_LIST', null); }}
-            onSave={this.onEditSave}
-          />
-        )}
-        { screen === 'TEAM_LIST' && (
-          <TeamListScreen
-            theme={theme}
-            prefs={prefs}
-            onEdit={(k) => { this.changeScreen('EDIT_TEAM', k); }}
-            onPlay={(k) => { this.changeScreen('GAME_TIMER', k); }}
-            onNavigate={(scr, key) => this.changeScreen(scr, key)}
-          />
-        )}
-      </PaperProvider>
-    );
-  }
+function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        theme={theme}
+        initialRouteName="Teams"
+        screenOptions={{ header: TopAppBar }}
+      >
+        <Stack.Screen name="Preferences" component={PreferencesScreen} />
+        <Stack.Screen name="Game" component={GameScreen} />
+        <Stack.Screen name="Edit.Team" component={EditTeamScreen} options={{ title: 'Edit Team', onSave: null }} />
+        <Stack.Screen name="Edit.Player" component={EditPlayerScreen} options={{ title: 'Edit Player' }} />
+        <Stack.Screen name="Teams" component={TeamListScreen} options={{ title: 'Court Timer', showSettings: true }} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 }
+
+// The App is the AppNavigator wrapped in a PaperProvider (for a theme)
+function App() {
+  return (
+    <PaperProvider theme={theme}>
+      <AppNavigator />
+    </PaperProvider>
+  );
+}
+
+export default App;
