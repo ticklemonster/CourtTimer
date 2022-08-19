@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { ActivityIndicator, View } from 'react-native';
-import { TextInput, Snackbar, Surface, Headline, Text } from 'react-native-paper';
+import { TextInput, Snackbar, Surface, Headline, Text, Button } from 'react-native-paper';
 
 import TeamStore from '../stores/TeamStore';
 import ConfirmButton from '../components/ConfirmButton';
@@ -87,17 +87,18 @@ function EditPlayerScreen({ navigation, route }) {
     <View style={styles.page}>
       <Surface style={styles.container}>
         <Headline>{`Team: ${teamName}`}</Headline>
-        <View style={{ display: 'flex', flexDirection: 'row' }}>
+        <View style={styles.horizontalContainer}>
           <TextInput
-            style={{ flex: 2 }}
+            style={styles.playerNumberInput}
             mode="outlined"
             label="No"
             value={player.number}
             onChangeText={(txt) => setPlayer({ ...player, number: txt })}
             onBlur={saveChanges}
+            autoFocus
           />
           <TextInput
-            style={{ flex: 10 }}
+            style={styles.playerNameInput}
             mode="outlined"
             label="Name"
             value={player.name}
@@ -105,7 +106,11 @@ function EditPlayerScreen({ navigation, route }) {
             onBlur={saveChanges}
           />
         </View>
-        <View style={{ marginTop: 8 }}>
+        <View style={[styles.horizontalContainer, styles.spacedButtonBar]}>
+          <Button onPress={() => saveChanges().then(() => navigation.replace('Edit.Player', { teamId, playerId: null }))}>Save &amp; New</Button>
+          <Button mode="outlined" onPress={() => saveChanges().then(() => navigation.goBack())}>Save</Button>
+        </View>
+        <View style={styles.dividerMd}>
           <Text>{`Game time: ${player.gameTime}`}</Text>
         </View>
 
@@ -141,6 +146,7 @@ EditPlayerScreen.propTypes = {
     navigate: PropTypes.func.isRequired,
     popToTop: PropTypes.func.isRequired,
     goBack: PropTypes.func,
+    replace: PropTypes.func,
     setOptions: PropTypes.func,
   }).isRequired,
   route: PropTypes.shape({

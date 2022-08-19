@@ -21,67 +21,16 @@ import {
 } from 'react-native-paper';
 
 import TeamStore from '../stores/TeamStore';
-import { colours, styles } from '../styles/CourtTimerStyles';
+import { styles } from '../styles/CourtTimerStyles';
 
 const DEFAULT_TIME = 20 * 60;
-
-// const styles = StyleSheet.create({
-//   pageView: {
-//     // ...colourStyles.primary,
-//     flex: 1,
-//     alignContent: 'center',
-//     flexDirection: 'column',
-//   },
-//   playerListStyle: {
-//     flex: 1, margin: 5,
-//   },
-//   titleViewStyle: {
-//     // ...colourStyles.secondaryDark,
-//     flex: 0, paddingHorizontal: 5, borderRadius: 8,
-//   },
-//   titleTextStyle: {
-//     // ...colourStyles.secondaryDark,
-//     fontSize: 18, fontWeight: 'bold', alignSelf: 'center',
-//   },
-//   playerCardStyle: {
-//     // ...colourStyles.primaryLight,
-//     flex: 0,
-//     borderRadius: 8,
-//     margin: 1,
-//     flexDirection: 'column',
-//     alignItems: 'center',
-//     height: '20%',
-//     elevation: 4,
-//   },
-//   playerCardSelectedStyle: {
-//     // ...colourStyles.secondaryLight,
-//     elevation: 1,
-//   },
-//   playerNumberStyle: {
-//     flex: 1, fontSize: 18, fontWeight: 'bold',
-//   },
-//   playerNameStyle: {
-//     flex: 2, fontSize: 24, fontWeight: 'bold', textAlignVertical: 'center',
-//   },
-//   playerTimeStyle: {
-//     flex: 1, fontSize: 18, textAlignVertical: 'top', paddingTop: 0,
-//   },
-//   footerBar: {
-//     // borderTopWidth: 1,
-//     // borderTopColor: 'red',
-//     justifyContent: 'center',
-//   },
-//   footerAction: {
-//     marginHorizontal: 20,
-//   },
-// });
 
 // helpful player sorting functions
 function sortPlayersByNumberAsc(a, b) { return parseInt(a.number, 10) - parseInt(b.number, 10); }
 function sortPlayersByGametimeAsc(a, b) { return a.gameTime - b.gameTime; }
 function sortPlayersByGametimeDsc(a, b) { return b.gameTime - a.gameTime; }
 
-function GameScreen({ navigation, route, }) {
+function GameScreen({ navigation, route }) {
   const { id } = route.params;
 
   const [isRunning, setRunning] = useState(false);
@@ -97,8 +46,8 @@ function GameScreen({ navigation, route, }) {
     } else {
       const newteam = (await TeamStore.readTeam(id));
       const newplayers = newteam.players.map((item) => (
-        { ...item, gameTime: 0, selected: false, playing: true }
-      ));
+        { ...item, gameTime: 0, selected: false, playing: false }
+      )).sort(sortPlayersByNumberAsc);
       // if (balancePlayers && players.length >= 5) {
       //   // automatically select a starting five...
       //   for (let i = 0; i < 5; i++) players[i].playing = true;
@@ -144,17 +93,13 @@ function GameScreen({ navigation, route, }) {
     setPlayers(players.map((p) => (
       { ...p, gameTime: (p.playing) ? p.gameTime + 1 : p.gameTime }
     )));
-
-    // update the active players
-    // const newPlayers = players.map((item) => (
-    //   { ...item, gameTime: item.playing ? item.gameTime + elapsed : item.gameTime }
-    // ));
   }, [secs]);
 
   useEffect(() => {
     console.debug('GAME is ', isRunning ? 'RUNNING' : 'STOPPED');
     if (isRunning) {
-      setIntervalId(setInterval(() => setSecs((secs) => secs - 1), 1000));
+      const timerId = setInterval(() => setSecs((s) => s - 1), 1000);
+      setIntervalId(timerId);
     } else {
       clearInterval(intervalId);
       setIntervalId(null);
@@ -175,28 +120,40 @@ function GameScreen({ navigation, route, }) {
 
   const selectPlayer = (playerId) => {
     //   const { balancePlayers } = prefs;
-    const newPlayers = players.map((p) => ({ ...p, selected: p.id === playerId ? !p.selected : p.selected }));
 
-    //   const selectedPlayingCount = players.filter((item) => item.selected && item.playing).length;
-    //   const selectedBenchCount = players.filter((item) => item.selected && !item.playing).length;
-  
-    //   if (balancePlayers && p.playing && p.selected && selectedPlayingCount > selectedBenchCount) {
-    //     // balancing and just selected an active player
-    //     // need to auto-select a benched player
-    //     // console.debug('GameScreen: balance after selecting player');
-    //     const bench = players
-    //       .filter((item) => !item.playing && !item.selected)
-    //       .sort(sortPlayersByGametimeAsc);
-    //     if (bench.length > 0) bench[0].selected = true;
-    //   }
-    //   if (balancePlayers && !p.playing && p.selected && selectedPlayingCount < selectedBenchCount) {
-    //     // balancing and just selecetd a bench player
-    //     // need to auto-select a playing player
-    //     // console.debug('GameScreen: balance after selecting bench');
-    //     const playing = players.filter((item) => item.playing && !item.selected)
-    //       .sort(sortPlayersByGametimeDsc);
-    //     if (playing.length > 0) playing[0].selected = true;
-    //   }
+    const newPlayers = players.map((p) => (
+      p.id === playerId ? { ...p, selected: !p.selected } : p
+    ));
+
+    /*
+    const selectedPlayingCount = players.filter((item) => item.selected && item.playing).length;
+    const selectedBenchCount = players.filter((item) => item.selected && !item.playing).length;
+
+    // if we selected a bench player and there are playing players unselected,
+    // select the player with the longest court time
+    if (players.includes((p) => p.id === playerId && !p.playing)) {
+      // && selectedBenchCount > selectedPlayingCount) {
+      console.debug('Selected bench player: should auto-select court player');
+    }
+
+      if (balancePlayers && p.playing && p.selected && selectedPlayingCount > selectedBenchCount) {
+        // balancing and just selected an active player
+        // need to auto-select a benched player
+        // console.debug('GameScreen: balance after selecting player');
+        const bench = players
+          .filter((item) => !item.playing && !item.selected)
+          .sort(sortPlayersByGametimeAsc);
+        if (bench.length > 0) bench[0].selected = true;
+      }
+      if (balancePlayers && !p.playing && p.selected && selectedPlayingCount < selectedBenchCount) {
+        // balancing and just selecetd a bench player
+        // need to auto-select a playing player
+        // console.debug('GameScreen: balance after selecting bench');
+        const playing = players.filter((item) => item.playing && !item.selected)
+          .sort(sortPlayersByGametimeDsc);
+        if (playing.length > 0) playing[0].selected = true;
+      }
+    */
 
     setPlayers(newPlayers);
   };
@@ -209,12 +166,23 @@ function GameScreen({ navigation, route, }) {
     setPlayers(newPlayers);
   };
 
+  const confirmCancel = () => {
+    setRunning(false);
+    setShowCancelDialog(false);
+    InteractionManager.runAfterInteractions(() => loadTeamData(null));
+  };
+
+  // Waiting ....
   if (!players) return <ActivityIndicator size="large" style={styles.centered} />;
 
   //
   // Render Function
   //
   const timestr = new Date(secs * 1000).toISOString().substring(14, 19);
+  const mmss = (s) => (new Date(s * 1000).toISOString().substring(14, 19));
+  const playerAvatar = (size, num) => (<Avatar.Text size={size} label={num} />);
+  const playerCheckbox = (size, sel) => (<Checkbox size={size} status={sel ? 'checked' : 'unchecked'} />);
+
   // const playingCount = players.filter((item) => item.playing).length;
   // const selectedPlayingCount = players.filter((item) => item.selected && item.playing).length;
   // const selectedBenchCount = players.filter((item) => item.selected && !item.playing).length;
@@ -223,62 +191,55 @@ function GameScreen({ navigation, route, }) {
 
   return (
     <View style={styles.page}>
-      <Surface style={styles.container}>
-        <Text style={{ fontSize: '2em', color: colours.secondary, textAlign: 'center', marginVertical: 8 }}>
+      <Surface style={styles.containerFull}>
+        <Text style={styles.gameClock}>
           {timestr}
         </Text>
 
-      {/* <View style={{
-        flex: 1, flexDirection: 'row', alignItems: 'stretch', margin: 5, justifyContent: 'space-around',
-      }}
-      > */}
-        <View style={{ flex: 1, margin: 4 }}>
-          <Title style={{ alignSelf: 'center' }}>BENCH</Title>
-          <ScrollView contentContainerStyle={{ justifyContent: 'flex-start' }}>
-            { players.filter((item) => !item.playing).map((item) => (
-              <Card
-                key={item.id}
-                style={{
-                  marginVertical: 6,
-                  borderRadius: 12,
-                  borderColor: item.selected ? 'purple' : '#666',
-                  borderWidth: item.selected ? 2 : 1,
-                }}
-                onPress={() => selectPlayer(item.id)}
-              >
-                <Card.Title
-                  title={item.name}
-                  subtitle={<Title>{new Date(item.gameTime * 1000).toISOString().substring(14, 19)}</Title>}
-                  left={(props) => <Avatar.Text {...props} label={item.number} />}
-                  right={(props) => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
-                />
-              </Card>
-            ))}
-          </ScrollView>
+        <View style={styles.gameLayout}>
+          <View style={styles.gameBlock}>
+            <Title style={styles.centered}>BENCH</Title>
+            <ScrollView contentContainerStyle={styles.gameCardContainer}>
+              {players.filter((item) => !item.playing).sort(sortPlayersByGametimeAsc).map((item) => (
+                <Card
+                  key={item.id}
+                  style={item.selected ? styles.gameCardSelected : styles.gameCard}
+                  onPress={() => selectPlayer(item.id)}
+                >
+                  <Card.Title
+                    title={item.name}
+                    titleStyle={styles.gameCardTitle}
+                    subtitle={mmss(item.gameTime)}
+                    subtitleStyle={styles.gameCardBody}
+                    left={({ size }) => playerAvatar(size, item.number)}
+                    right={({ size }) => playerCheckbox(size, item.selected)}
+                  />
+                </Card>
+              ))}
+            </ScrollView>
+          </View>
+          <View style={styles.gameBlock}>
+            <Title style={styles.centered}>COURT</Title>
+            <ScrollView contentContainerStyle={styles.gameCardContainer}>
+              {players.filter((item) => item.playing).sort(sortPlayersByGametimeDsc).map((item) => (
+                <Card
+                  key={item.id}
+                  style={item.selected ? styles.gameCardSelected : styles.gameCard}
+                  onPress={() => selectPlayer(item.id)}
+                >
+                  <Card.Title
+                    title={item.name}
+                    titleStyle={styles.gameCardTitle}
+                    subtitle={mmss(item.gameTime)}
+                    subtitleStyle={styles.gameCardBody}
+                    left={({ size }) => playerAvatar(size, item.number)}
+                    right={({ size }) => playerCheckbox(size, item.selected)}
+                  />
+                </Card>
+              ))}
+            </ScrollView>
+          </View>
         </View>
-        <View style={{ flex: 1, margin: 4 }}>
-          <Title style={{ alignSelf: 'center' }}>COURT</Title>
-          <ScrollView contentContainerStyle={{ justifyContent: 'flex-start' }}>
-            {players.filter((item) => item.playing).map((item) => (
-              <Card
-                key={item.id}
-                style={{ marginVertical: 6,
-                  borderRadius: 12,
-                  borderColor: item.selected ? 'purple' : '#666',
-                  borderWidth: item.selected ? 2 : 1 }}
-                onPress={() => selectPlayer(item.id)}
-              >
-                <Card.Title
-                  title={item.name}
-                  subtitle={<Title>{new Date(item.gameTime * 1000).toISOString().substring(14, 19)}</Title>}
-                  left={(props) => <Avatar.Text {...props} label={item.number} />}
-                  right={(props) => <Checkbox {...props} status={item.selected ? 'checked' : 'unchecked'} />}
-                />
-              </Card>
-            ))}
-          </ScrollView>
-        </View>
-      {/* </View> */}
       </Surface>
       <Portal>
         <Dialog visible={showCancelDialog} onDismiss={() => setShowCancelDialog(false)}>
@@ -288,17 +249,11 @@ function GameScreen({ navigation, route, }) {
           </Dialog.Content>
           <Dialog.Actions>
             <Button mode="contained" onPress={() => setShowCancelDialog(false)}>Play On</Button>
-            <Button mode="text" onPress={() => {
-              setRunning(false);
-              setShowCancelDialog(false);
-              InteractionManager.runAfterInteractions(() => loadTeamData(null));
-            }}>
-              End Game
-            </Button>
+            <Button mode="text" onPress={() => confirmCancel()}>End Game</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
-      <Appbar style={{ justifyContent: 'space-evenly' }}>
+      <Appbar style={styles.spacedButtonBar}>
         <Appbar.Action
           icon="timer"
           accessibilityLabel="RESET"
@@ -324,14 +279,22 @@ function GameScreen({ navigation, route, }) {
 }
 
 GameScreen.propTypes = {
-  id: PropTypes.string,
+  navigation: PropTypes.shape({
+    pop: PropTypes.func,
+    addListener: PropTypes.func,
+    removeListener: PropTypes.func,
+  }).isRequired,
+  route: PropTypes.shape({
+    params: PropTypes.shape({
+      id: PropTypes.string.isRequired,
+    }),
+  }).isRequired,
   prefs: PropTypes.shape({
     balancePlayers: PropTypes.bool,
   }),
 };
 
 GameScreen.defaultProps = {
-  id: null,
   prefs: {
     balancePlayers: false,
   },

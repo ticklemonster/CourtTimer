@@ -34,8 +34,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+    paddingBottom: '3rem', // enough room for a bottom bar
   },
-
+  containerFull: {
+    flex: 1,
+    padding: 10,
+  },
   fab: {
     position: 'absolute',
     margin: 16,
@@ -46,23 +50,30 @@ const styles = StyleSheet.create({
     margin: 'auto',
   },
 
+  dividerSm: { marginVertical: 4 },
+  dividerMd: { marginVertical: 8 },
+  dividerLg: { marginVertical: 16 },
+
+  horizontalContainer: { marginVertical: 6, display: 'flex', flexDirection: 'row' },
+  spacedButtonBar: { justifyContent: 'space-around' },
+
+  editTeamName: { width: '100%', fontSize: 24 },
+  editTeamDetail: { width: '100%', fontSize: 18 },
   bottomDeleteBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    marginHorizontal: 16,
     paddingVertical: 8,
     paddingHorizontal: 'auto',
     borderTopColor: colours.primary,
     borderTopWidth: 1,
-    // backgroundColor: colours.primaryLight,
-    // color: colours.danger,
+    backgroundColor: colours.primaryLight,
   },
 
   snackSave: {
     position: 'relative',
-    top: '-3em',
+    top: '-3em', // above the bottom app bar
     backgroundColor: colours.secondary,
   },
 
@@ -77,7 +88,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 1,
+    margin: 1,
     paddingHorizontal: 0,
   },
   playerBackDangerButton: {
@@ -95,39 +106,73 @@ const styles = StyleSheet.create({
     backgroundColor: 'green',
     color: 'white',
   },
+  playerListEmpty: { padding: '1em', fontStyle: 'italic', fontSize: 20, color: colours.primaryDark },
+  playerListItem: { fontSize: 20, marginLeft: 8 },
+  playerListButton: { alignSelf: 'center' },
 
-  // playerListHeader: {
-  //   marginHorizontal: 0,
-  //   paddingHorizontal: 0,
-  //   borderBottomColor: colours.primaryLight,
-  //   borderBottomWidth: 1,
-  // },
-  // playerListFooter: {
-  //   borderTopColor: colours.primaryLight,
-  //   borderTopWidth: 1,
-  //   justifyContent: 'right',
-  // },
+  playerNumberInput: { flex: 2 },
+  playerNameInput: { flex: 10 },
 
-  titleViewStyle: {
-    backgroundColor: '#0069c0',
-    paddingHorizontal: 5,
-  },
-  titleTextStyle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    alignSelf: 'center',
-    color: 'white',
-    marginTop: 5,
-  },
-  warningMessageViewStyle: {
-    backgroundColor: 'orange',
-    marginVertical: 10,
-    padding: 8,
-  },
-  warningMessageTextStyle: {
-    fontSize: 18,
-    color: 'black',
-  },
+  gameClock: { fontSize: '2em', color: colours.secondary, textAlign: 'center', marginVertical: 8 },
+  gameLayout: { flex: 1, flexDirection: 'row', alignItems: 'stretch', margin: 5, justifyContent: 'space-around' },
+  gameBlock: { flex: 1, margin: 4 },
+  gameCardContainer: { flexDirection: 'row', flexWrap: 'wrap', alignContent: 'flex-start' },
+  gameCard: { flexBasis: 180, flexGrow: 0, margin: 3, borderRadius: 6, borderColor: colours.primary, borderWidth: 2 },
+  gameCardSelected: { flexBasis: 180, flexGrow: 0, margin: 3, borderRadius: 6, borderColor: 'purple', borderWidth: 2 },
+  gameCardTitle: {},
+  gameCardBody: { fontSize: '1.1rem', color: colours.primaryDark },
 });
 
 export { colours, colourStyles, styles };
+
+// STYLES from GameScreen
+// const styles = StyleSheet.create({
+//   pageView: {
+//     // ...colourStyles.primary,
+//     flex: 1,
+//     alignContent: 'center',
+//     flexDirection: 'column',
+//   },
+//   playerListStyle: {
+//     flex: 1, margin: 5,
+//   },
+//   titleViewStyle: {
+//     // ...colourStyles.secondaryDark,
+//     flex: 0, paddingHorizontal: 5, borderRadius: 8,
+//   },
+//   titleTextStyle: {
+//     // ...colourStyles.secondaryDark,
+//     fontSize: 18, fontWeight: 'bold', alignSelf: 'center',
+//   },
+//   playerCardStyle: {
+//     // ...colourStyles.primaryLight,
+//     flex: 0,
+//     borderRadius: 8,
+//     margin: 1,
+//     flexDirection: 'column',
+//     alignItems: 'center',
+//     height: '20%',
+//     elevation: 4,
+//   },
+//   playerCardSelectedStyle: {
+//     // ...colourStyles.secondaryLight,
+//     elevation: 1,
+//   },
+//   playerNumberStyle: {
+//     flex: 1, fontSize: 18, fontWeight: 'bold',
+//   },
+//   playerNameStyle: {
+//     flex: 2, fontSize: 24, fontWeight: 'bold', textAlignVertical: 'center',
+//   },
+//   playerTimeStyle: {
+//     flex: 1, fontSize: 18, textAlignVertical: 'top', paddingTop: 0,
+//   },
+//   footerBar: {
+//     // borderTopWidth: 1,
+//     // borderTopColor: 'red',
+//     justifyContent: 'center',
+//   },
+//   footerAction: {
+//     marginHorizontal: 20,
+//   },
+// })

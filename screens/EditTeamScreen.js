@@ -20,9 +20,11 @@ function EditTeamScreen({ navigation, route }) {
   // action functions
   const loadTeamData = async (teamId) => {
     if (teamId === null || teamId === undefined) {
+      console.debug('EditTeamScreen.loadTeamData - creating new team...');
       setTeam(await TeamStore.createTeam());
     } else {
-      const newteam = (await TeamStore.readTeam(id)) || TeamStore.createTeam();
+      console.debug(`EditTeamScreen.loadTeamData - loading team ${teamId}...`);
+      const newteam = (await TeamStore.readTeam(teamId)) || TeamStore.createTeam();
       setTeam(newteam);
       setUndo([]);
     }
@@ -52,6 +54,8 @@ function EditTeamScreen({ navigation, route }) {
     if (lastData) setUndo([lastData, ...undo]);
     setTeam(savedData);
     setShowUndoSnack(true);
+
+    if (id === null || id === undefined) navigation.replace('Edit.Team', { id: savedData.id });
   };
 
   const undoAction = async () => {
@@ -69,21 +73,25 @@ function EditTeamScreen({ navigation, route }) {
 
   // Set up the initial state on load
   useEffect(() => {
+    console.log(`EditTeamScreen.setup id=${id}. Adding Listener...`);
     navigation.setOptions({ onUndo: null });
-    navigation.addListener('focus', loadTeamData);
+    const unsubscribe = navigation.addListener('focus', () => loadTeamData(id));
 
-    return () => navigation.removeListener('focus');
+    return () => {
+      console.log('EditTeamScreen - removing listener');
+      unsubscribe();
+    };
   }, []);
 
   // Load team data if there is a change in id prop
-  useEffect(() => {
-    console.debug(`EditTeamScreen: id prop set to ${id}`);
-    loadTeamData(id);
+  // useEffect(() => {
+  //   console.debug(`EditTeamScreen: route changed to id=${id}`);
+  //   loadTeamData(id);
 
-    return () => {
-      console.debug(`EditTeamScreen: id prop changing from ${id}`);
-    };
-  }, [route]);
+  //   return () => {
+  //     console.debug(`EditTeamScreen: route changed from id=${id}`);
+  //   };
+  // }, [route]);
 
   // update the actions on the app bar
   useEffect(() => {
@@ -100,7 +108,7 @@ function EditTeamScreen({ navigation, route }) {
 
   // List render helpers
   const emptyListComponent = () => (
-    <Subheading style={{ paddingVertical: '1em' }}>No players here</Subheading>
+    <Subheading style={styles.playerListEmpty}>No players here</Subheading>
   );
 
   const renderHiddenItem = (rowData /* , rowMap */) => (
@@ -128,9 +136,9 @@ function EditTeamScreen({ navigation, route }) {
       <List.Item
         style={styles.playerListRow}
         left={playerNumberAvatar}
-        titleStyle={{ fontSize: 20, marginLeft: 8 }}
+        titleStyle={styles.playerListItem}
         title={item.name}
-        onPress={() => navigation.navigate('Edit.Player', { teamId: id, playerId: String(item.id) })}
+        onPress={() => navigation.navigate('Edit.Player', { teamId: team.id, playerId: String(item.id) })}
       />
     );
   };
@@ -142,8 +150,9 @@ function EditTeamScreen({ navigation, route }) {
   const headlineButton = () => (
     <Button
       mode="outlined"
-      style={{ alignSelf: 'flex-end' }}
-      onPress={() => navigation.navigate('Edit.Player', { teamId: id })}
+      disabled={id === null || id === undefined}
+      style={styles.playerListButton}
+      onPress={() => navigation.navigate('Edit.Player', { teamId: team.id })}
     >
       Add Player
     </Button>
@@ -152,7 +161,7 @@ function EditTeamScreen({ navigation, route }) {
     <View style={styles.page}>
       <Surface style={styles.container}>
         <TextInput
-          style={{ width: '100%', fontSize: 24 }}
+          style={styles.editTeamName}
           mode="outlined"
           label="Team Name:"
           value={team.name}
@@ -161,7 +170,7 @@ function EditTeamScreen({ navigation, route }) {
           onBlur={saveChanges}
         />
         <TextInput
-          style={{ width: '100%', fontSize: 18 }}
+          style={styles.editTeamDetail}
           mode="outlined"
           label="Details:"
           multiline
@@ -172,7 +181,7 @@ function EditTeamScreen({ navigation, route }) {
           onBlur={saveChanges}
         />
 
-        <Divider style={{ marginVertical: 8 }} />
+        <Divider style={styles.dividerMd} />
 
         <List.Item
           left={headlineIcon}
@@ -181,7 +190,7 @@ function EditTeamScreen({ navigation, route }) {
         />
 
         <SwipeListView
-          data={team.players}
+          data={team.players.sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10))}
           keyExtractor={(item) => item.id}
           renderItem={renderPlayerItem}
           renderHiddenItem={renderHiddenItem}
@@ -193,22 +202,21 @@ function EditTeamScreen({ navigation, route }) {
           rightActivationValue={-200}
           rightActionValue={-250}
           // onRightActionStatusChange={(data) => console.debug('Right Action Status Change', data)}
-          onRightAction={(key) => handleDeletePlayer({ teamId: id, id: key })}
+          onRightAction={(key) => handleDeletePlayer({ teamId: team.id, id: key })}
           ListEmptyComponent={emptyListComponent}
         />
-
-        <View style={styles.bottomDeleteBar}>
-          <ConfirmButton
-            confirmTitle="Delete Team"
-            confirmText={`Are you sure you want to delete this team (${team.name})?`}
-            confirmLabel="Delete"
-            onPress={handleDeleteTeamPressed}
-            color={colours.danger}
-          >
-            Delete Team
-          </ConfirmButton>
-        </View>
       </Surface>
+      <View style={styles.bottomDeleteBar}>
+        <ConfirmButton
+          confirmTitle="Delete Team"
+          confirmText={`Are you sure you want to delete this team (${team.name})?`}
+          confirmLabel="Delete"
+          onPress={handleDeleteTeamPressed}
+          color={colours.danger}
+        >
+          Delete Team
+        </ConfirmButton>
+      </View>
       <Snackbar
         visible={showUndoSnack}
         style={styles.snackSave}
@@ -230,6 +238,7 @@ EditTeamScreen.propTypes = {
   navigation: PropTypes.shape({
     navigate: PropTypes.func.isRequired,
     popToTop: PropTypes.func.isRequired,
+    replace: PropTypes.func,
     addListener: PropTypes.func,
     removeListener: PropTypes.func,
     setOptions: PropTypes.func,

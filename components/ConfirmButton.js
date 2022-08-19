@@ -6,9 +6,10 @@
 import React, { useState } from 'react';
 import { Dialog, Button, Portal, Subheading } from 'react-native-paper';
 import PropTypes from 'prop-types';
+import { styles } from '../styles/CourtTimerStyles';
 
 function ConfirmButton(props) {
-  const {onPress, confirmTitle, confirmText, confirmLabel, children, color} = props;
+  const { onPress, confirmTitle, confirmText, confirmLabel, children, color } = props;
   const [showDialog, setShowDialog] = useState(false);
 
   return (
@@ -19,7 +20,7 @@ function ConfirmButton(props) {
           <Dialog.Content>
             <Subheading>{confirmText}</Subheading>
           </Dialog.Content>
-          <Dialog.Actions style={{ justifyContent: 'space-around' }}>
+          <Dialog.Actions style={styles.spacedButtonBar}>
             <Button onPress={onPress} mode="text" color={color}>{confirmLabel}</Button>
             <Button onPress={() => setShowDialog(false)} mode="contained">Cancel</Button>
           </Dialog.Actions>

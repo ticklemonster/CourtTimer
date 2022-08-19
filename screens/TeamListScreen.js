@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FlatList, View } from 'react-native';
-import { ActivityIndicator, Avatar, List, FAB, Title, IconButton, Banner, Surface, Headline, Divider } from 'react-native-paper';
+import { ActivityIndicator, Avatar, List, FAB, Title, IconButton, Banner, Surface } from 'react-native-paper';
 import PropTypes from 'prop-types';
 
 import TeamStore from '../stores/TeamStore';
@@ -48,7 +48,7 @@ function TeamListScreen({ navigation }) {
   );
 
   if (teams === undefined) {
-    return <ActivityIndicator size="large" style={{ margin: 'auto' }} />;
+    return <ActivityIndicator size="large" style={styles.centered} />;
   }
 
   return (

@@ -79,22 +79,22 @@ const TeamStore = {
   isSampleTeam: (team) => (team.id === SAMPLE_TEAM.id),
 
   // readTeam: return a team structure for the team saved with the specified key
-  readTeam: async (key) => {
-    if (key === null || key === undefined) {
+  readTeam: async (teamId) => {
+    if (teamId === null || teamId === undefined) {
       return null;
     }
 
     // is this the sample team?
-    if (key === SAMPLE_TEAM.key) {
+    if (teamId === SAMPLE_TEAM.id) {
       return { ...SAMPLE_TEAM };
     }
 
     // can we load it?
     let team;
     try {
-      const jsonstr = await AsyncStorage.getItem(key);
+      const jsonstr = await AsyncStorage.getItem(teamId);
       team = JSON.parse(jsonstr);
-      team.id = key; // make sure the result object has the current key
+      team.id = teamId; // make sure the result object has the current key
     } catch (error) {
       console.error('TeamStore.getTeam() - Error finding team: ', error);
       team = undefined;
@@ -120,18 +120,18 @@ const TeamStore = {
     try {
       // if there is no key, then generate a random one - don't trust the cache!
       const allKeys = await AsyncStorage.getAllKeys();
-      if (teamdata.key === null || teamdata.key === undefined) {
+      if (teamdata.id === null || teamdata.id === undefined) {
         // TODO: PROPERLY GENERATE A NEW KEY!
         do {
           // eslint-disable-next-line no-bitwise
           const newkey = Math.trunc(Date.now() & 0x7fffffff).toString(16);
-          savedata.key = `@CourtTimer:team:${newkey}`;
-          console.log(`TeamStore.updateTeam: Generating new key for team ${savedata.name}: ${savedata.key}`);
-        } while (allKeys.includes(savedata.key));
+          savedata.id = `@CourtTimer:team:${newkey}`;
+          console.log(`TeamStore.updateTeam: Generating new key for team ${savedata.name}: ${savedata.id}`);
+        } while (allKeys.includes(savedata.id));
       }
 
       // Ready to save the new/updated team
-      await AsyncStorage.setItem(savedata.key, JSON.stringify(savedata));
+      await AsyncStorage.setItem(savedata.id, JSON.stringify(savedata));
     } catch (error) {
       console.error('TeamStore.updateTeam() - Error updating team: ', error);
     }
