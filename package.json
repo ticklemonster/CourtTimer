@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "react-native": "https://github.com/expo/react-native/archive/sdk-34.0.0.tar.gz",
-    "expo": "^34.0.1",
+    "expo": "^49.0.13",
     "react": "16.8.3",
     "prop-types": "^15.7.2",
     "react-native-paper": "^2.16.0",
     "react-navigation": "^2.18.3"
   },
   "devDependencies": {
-    "babel-preset-expo": "^5.2.0",
+    "babel-preset-expo": "^9.5.2",
     "eslint": "^6.3.0",
     "eslint-config-airbnb": "^18.0.1",
     "eslint-plugin-import": "^2.18.2",
